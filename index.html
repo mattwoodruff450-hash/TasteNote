@@ -8,6 +8,11 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#7a1a1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TasteNote">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:#f5efe6;color:#3a2218;font-family:Georgia,serif;min-height:100vh}
@@ -833,6 +838,26 @@ function renderDetail(){
     <div style="margin-bottom:50px"></div>
   </div>`;
 }
+
+// ── PWA ───────────────────────────────────────────────────
+(function(){
+  const icon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="80" fill="#7a1a1a"/><text x="256" y="400" font-size="340" text-anchor="middle" font-family="serif">🍷</text></svg>`;
+  const manifest = {
+    name:'TasteNote',short_name:'TasteNote',
+    description:'WSET-style personal wine tasting notes',
+    start_url:'./',display:'standalone',
+    background_color:'#f5efe6',theme_color:'#7a1a1a',
+    orientation:'portrait-primary',
+    icons:[{src:'data:image/svg+xml,'+encodeURIComponent(icon),sizes:'512x512',type:'image/svg+xml',purpose:'any'}]
+  };
+  const blob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+  const link=document.createElement('link');
+  link.rel='manifest'; link.href=URL.createObjectURL(blob);
+  document.head.appendChild(link);
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
+})();
 
 // ── Init ──────────────────────────────────────────────────
 firebase.auth().onAuthStateChanged(user => {
