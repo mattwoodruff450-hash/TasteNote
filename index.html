@@ -296,6 +296,7 @@ async function compressPhoto(file) {
 // ── Utils ─────────────────────────────────────────────────
 function dotColor(t){return{red:'#8b1a1a',white:'#c9a83a',rosé:'#c97a8a',sparkling:'#d4c060',fortified:'#8b6010'}[t]||'#8b7060';}
 function qColor(q){return{'Outstanding':'#c9a87a','Excellent':'#a0c87a','Very good':'#90c87a','Good':'#7ab8c8','Acceptable':'#c8b07a','Poor':'#c87a7a'}[q]||'#6b5040';}
+function qualityLabel(s){if(s>=95)return'Outstanding';if(s>=87)return'Excellent';if(s>=83)return'Very good';if(s>=80)return'Good';if(s>=70)return'Acceptable';return'Poor';}
 
 function getSorted() {
   let r = notes.filter(n =>
@@ -495,6 +496,8 @@ function importCSV(){
   const input=document.createElement('input');
   input.type='file';
   input.accept='.csv';
+  input.style.display='none';
+  document.body.appendChild(input);
   input.onchange=async e=>{
     const file=e.target.files[0];
     if(!file) return;
@@ -570,6 +573,7 @@ function importCSV(){
       }catch(e){failed++;}
     }
     alert(`Import complete!\n✅ ${imported} notes imported\n${failed>0?'⚠️ '+failed+' rows skipped':''}`);
+    document.body.removeChild(input);
   };
   input.click();
 }
