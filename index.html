@@ -570,9 +570,9 @@ function importCSV(){
         if(!note.wineName){failed++;continue;}
         await notesCol().add(note);
         imported++;
-      }catch(e){failed++;}
+      }catch(e){failed++;console.error('Row '+i+' failed:',e,note);}
     }
-    alert(`Import complete!\n✅ ${imported} notes imported\n${failed>0?'⚠️ '+failed+' rows skipped':''}`);
+    alert(`Import complete!\n✅ ${imported} notes imported\n${failed>0?'⚠️ '+failed+' rows skipped — open browser console for details':''}`);
     document.body.removeChild(input);
   };
   input.click();
