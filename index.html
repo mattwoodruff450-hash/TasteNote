@@ -795,6 +795,7 @@ function renderDetail(){
     <div class="header-top">
       <button class="btn" onclick="goList()">← Back</button>
       <div style="display:flex;gap:8px">
+        <button class="btn" onclick="window.open('https://www.cellartracker.com/wines.asp?szSearch='+encodeURIComponent('${n.wineName.replace(/'/g,"\\'")}'),'_blank')">🔍 CellarTracker</button>
         <button class="btn" onclick="goEdit('${n.id}')">✏️ Edit</button>
         <button class="btn-danger" onclick="doDelete('${n.id}')">Delete</button>
       </div>
