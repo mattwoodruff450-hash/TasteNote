@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>TasteNote 🍷</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#7a1a1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TasteNote">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:#f5efe6;color:#3a2218;font-family:Georgia,serif;min-height:100vh}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:#f5efe6}::-webkit-scrollbar-thumb{background:#c9b09a;border-radius:3px}
+
+.header{background:linear-gradient(180deg,#ede3d6,#f5efe6);border-bottom:1px solid #d9c8b4;padding:16px 20px;position:sticky;top:0;z-index:100}
+.header-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.app-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;font-weight:300;color:#7a1a1a;letter-spacing:0.08em}
+.app-sub{font-size:10px;color:#a08060;letter-spacing:0.2em;text-transform:uppercase;margin-top:2px}
+.form-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:400;color:#7a1a1a;letter-spacing:0.05em}
+
+.btn{background:#e8d8c4;color:#5a2a10;border:1px solid #c9b09a;padding:9px 16px;border-radius:4px;cursor:pointer;font-size:13px;font-family:Georgia,serif;letter-spacing:0.03em;transition:background 0.15s;white-space:nowrap}
+.btn:hover{background:#d9c8b0}
+.btn-primary{background:#7a1a1a;color:#f5ede0;border:1px solid #9b2a2a;padding:10px 22px;border-radius:4px;cursor:pointer;font-size:14px;font-family:Georgia,serif;font-weight:600;letter-spacing:0.04em;transition:background 0.15s;white-space:nowrap}
+.btn-primary:hover{background:#8b2a2a}
+.btn-primary:disabled{opacity:0.4;cursor:default}
+.btn-danger{background:transparent;color:#8b3a2a;border:1px solid #c9b09a;padding:8px 14px;border-radius:4px;cursor:pointer;font-size:12px;font-family:Georgia,serif}
+.btn-danger:hover{background:#f0e4d4}
+
+.search-bar{width:100%;background:#ede3d6;border:1px solid #c9b09a;border-radius:4px;color:#3a2218;padding:10px 14px;font-size:14px;font-family:Georgia,serif;outline:none;margin-top:12px}
+.search-bar::placeholder{color:#b09878}
+.search-bar:focus{border-color:#9b6040}
+.sort-bar{display:flex;gap:8px;margin-top:10px}
+.sort-btn{background:transparent;border:1px solid #c9b09a;color:#a08060;padding:5px 12px;border-radius:20px;cursor:pointer;font-size:11px;font-family:Georgia,serif;letter-spacing:0.05em;transition:all 0.15s}
+.sort-btn.active{border-color:#7a1a1a;background:#e8d0c0;color:#7a1a1a}
+
+.content{max-width:700px;margin:0 auto;padding:20px 16px;width:100%}
+.form-content{max-width:700px;margin:0 auto;padding:20px 16px 60px;width:100%}
+
+.wine-card{background:#ede3d6;border:1px solid #d9c8b4;border-radius:6px;margin-bottom:10px;cursor:pointer;transition:border-color 0.15s,background 0.15s;display:flex;align-items:center;overflow:hidden}
+.wine-card:hover{border-color:#9b6040;background:#e8dace}
+.card-photo{width:72px;height:72px;flex-shrink:0;overflow:hidden}
+.card-photo img{width:100%;height:100%;object-fit:cover}
+.card-dot-wrap{width:52px;height:72px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dot{width:10px;height:10px;border-radius:50%}
+.card-body{flex:1;padding:12px 12px 12px 4px;min-width:0}
+.card-name{font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:#7a1a1a;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-meta{font-size:12px;color:#8b6848;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-aromas{font-size:11px;color:#a08060;font-style:italic;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-right{text-align:right;padding:12px 14px 12px 4px;flex-shrink:0}
+.card-score{font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;color:#7a1a1a;font-weight:300;line-height:1}
+.card-quality{font-size:9px;text-transform:uppercase;letter-spacing:0.08em;margin-top:2px}
+.card-date{font-size:10px;color:#b09878;margin-top:3px}
+
+.empty-state{text-align:center;padding:70px 20px}
+.empty-big{font-size:48px;margin-bottom:12px}
+.empty-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;color:#c9b09a;font-weight:300;margin-bottom:8px}
+.empty-sub{font-size:14px;color:#a08060}
+
+.section{background:#ede3d6;border:1px solid #d9c8b4;border-radius:6px;padding:20px;margin-bottom:14px}
+.section-head{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid #d9c8b4;padding-bottom:12px;margin-bottom:18px}
+.sec-num{font-family:'Cormorant Garamond',Georgia,serif;font-size:34px;color:#c9b09a;font-weight:300;line-height:1}
+.sec-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;color:#7a1a1a;font-weight:600;letter-spacing:0.05em}
+.sec-sub{font-size:11px;color:#a08060;font-style:italic;margin-top:2px}
+
+.field{margin-bottom:16px}
+label{display:block;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#8b6848;margin-bottom:6px;font-family:'Cormorant Garamond',Georgia,serif;font-weight:600}
+.req{color:#8b1a1a;margin-left:4px}
+input[type=text],input[type=number],input[type=date],select,textarea{width:100%;background:#f5efe6;border:1px solid #c9b09a;border-radius:4px;color:#3a2218;padding:10px 12px;font-size:14px;font-family:Georgia,serif;outline:none;appearance:none;-webkit-appearance:none}
+input:focus,select:focus,textarea:focus{border-color:#9b6040}
+input::placeholder,textarea::placeholder{color:#b09878}
+select{cursor:pointer}
+textarea{resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+.photo-upload{border:1px dashed #c9b09a;border-radius:6px;cursor:pointer;overflow:hidden;min-height:80px;display:flex;align-items:center;justify-content:center;background:#f5efe6;transition:border-color 0.15s}
+.photo-upload:hover{border-color:#9b6040}
+.photo-upload img{width:100%;max-height:220px;object-fit:cover;display:block}
+.photo-placeholder{color:#b09878;font-size:13px;padding:20px;text-align:center}
+
+.type-btns{display:flex;flex-wrap:wrap;gap:7px}
+.type-btn{padding:7px 14px;border-radius:20px;border:1px solid #c9b09a;background:transparent;color:#8b6848;font-size:12px;cursor:pointer;font-family:Georgia,serif;text-transform:capitalize;transition:all 0.15s}
+.type-btn.active{border-color:#7a1a1a;background:#e8d0c0;color:#7a1a1a}
+
+.aroma-cat{margin-bottom:14px}
+.aroma-cat-label{font-size:10px;color:#a08060;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;font-family:'Cormorant Garamond',Georgia,serif;font-weight:600}
+.multi-wrap{display:flex;flex-wrap:wrap;gap:5px}
+.multi-btn{padding:4px 10px;border-radius:20px;border:1px solid #c9b09a;background:transparent;color:#8b6848;font-size:12px;cursor:pointer;font-family:Georgia,serif;transition:all 0.15s}
+.multi-btn.active{border-color:#7a1a1a;background:#e8d0c0;color:#7a1a1a}
+.custom-add{display:flex;gap:8px;margin-top:10px}
+.custom-add input{flex:1}
+
+.score-display{font-family:'Cormorant Garamond',Georgia,serif;font-size:14px;color:#7a1a1a;text-transform:none;letter-spacing:0}
+input[type=range]{accent-color:#7a1a1a;padding:0;border:none;background:none;width:100%}
+.range-labels{display:flex;justify-content:space-between;font-size:9px;color:#b09878;margin-top:3px}
+
+.dup-warning{background:#fdf5e4;border:1px solid #c9a03a;border-radius:6px;padding:14px 18px;margin-bottom:20px;display:flex;gap:12px;align-items:flex-start}
+.dup-icon{font-size:20px;flex-shrink:0}
+.dup-title{font-size:13px;color:#8b6010;font-weight:600;margin-bottom:3px}
+.dup-sub{font-size:12px;color:#a08040}
+.dup-link{background:none;border:none;color:#8b6010;font-size:12px;cursor:pointer;padding:0;text-decoration:underline;margin-top:5px;font-family:Georgia,serif;display:block}
+
+.detail-hero{margin-bottom:20px}
+.detail-name{font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;color:#7a1a1a;font-weight:400}
+.detail-meta{font-size:14px;color:#8b6848;margin-top:3px}
+.detail-date{font-size:12px;color:#b09878;margin-top:3px}
+.score-box{background:#ede3d6;border:1px solid #c9b09a;border-radius:6px;padding:14px 22px;margin-bottom:18px;display:flex;align-items:center;gap:18px}
+.score-big-num{font-family:'Cormorant Garamond',Georgia,serif;font-size:52px;color:#7a1a1a;font-weight:300;line-height:1}
+.score-label-sm{font-size:10px;color:#a08060;text-transform:uppercase;letter-spacing:0.1em}
+.detail-section{background:#ede3d6;border:1px solid #d9c8b4;border-radius:6px;padding:18px 20px;margin-bottom:12px}
+.detail-section h4{font-family:'Cormorant Garamond',Georgia,serif;color:#8b6848;font-size:12px;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:14px}
+.detail-row{display:flex;gap:12px;margin-bottom:8px;border-bottom:1px solid #d9c8b4;padding-bottom:8px}
+.detail-row:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.dl{font-size:10px;color:#a08060;text-transform:uppercase;letter-spacing:0.1em;width:130px;flex-shrink:0;padding-top:2px;font-family:'Cormorant Garamond',Georgia,serif;font-weight:600}
+.dv{font-size:13px;color:#3a2218;flex:1}
+
+.connecting{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:12px}
+.connecting-text{font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;color:#a08060;letter-spacing:0.08em}
+.error-state{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px;padding:30px;text-align:center}
+.error-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;color:#7a1a1a}
+.error-sub{font-size:13px;color:#a08060;max-width:400px;line-height:1.7}
+.error-steps{background:#ede3d6;border:1px solid #c9b09a;border-radius:6px;padding:16px 20px;text-align:left;max-width:420px;width:100%}
+.error-steps li{font-size:13px;color:#8b6848;margin-bottom:8px;padding-left:4px;line-height:1.5}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="connecting"><div style="font-size:36px">🍷</div><div class="connecting-text">Connecting to your cellar...</div></div>
+</div>
+
+<script>
+// ====================================================
+// TasteNote - Firebase Config
+// ====================================================
+firebase.initializeApp({
+  apiKey:            "AIzaSyBUXQ5xp9y1iPuTUqrztKCuCswU4oNNW1U",
+  authDomain:        "winepal-universal.firebaseapp.com",
+  projectId:         "winepal-universal",
+  storageBucket:     "winepal-universal.firebasestorage.app",
+  messagingSenderId: "542130577160",
+  appId:             "1:542130577160:web:dab5efc74bd3423bc4d6bd"
+});
+const db = firebase.firestore();
+
+// ── Constants ─────────────────────────────────────────────
+const WINE_TYPES = ['red','white','rose','sparkling','fortified'];
+const COLOURS = {
+  red:['Purple','Ruby','Garnet','Tawny','Brown'],
+  white:['Lemon-green','Lemon','Gold','Amber','Brown'],
+  rose:['Pink','Salmon','Copper','Orange'],
+  sparkling:['Lemon-green','Lemon','Gold','Pink','Salmon'],
+  fortified:['Pale gold','Gold','Amber','Tawny','Brown']
+};
+const FAULTS = ['Clean','TCA / Corked','Oxidised','Reduced','Volatile acidity','Brettanomyces'];
+const AROMAS_PRIMARY = {
+  'Green Fruit':['Apple','Pear','Gooseberry','Quince'],
+  'Citrus':['Lemon','Lime','Grapefruit','Orange zest','Bergamot'],
+  'Stone Fruit':['Peach','Apricot','Nectarine','Plum','Cherry'],
+  'Tropical':['Lychee','Mango','Passion fruit','Pineapple','Banana','Guava'],
+  'Red Fruit':['Strawberry','Raspberry','Redcurrant','Cranberry','Pomegranate'],
+  'Black Fruit':['Blackcurrant','Blackberry','Blueberry','Black cherry','Sloe'],
+  'Dried Fruit':['Fig','Prune','Raisin','Sultana','Dried apricot'],
+  'Floral':['Rose','Violet','Blossom','Elderflower','Jasmine','Geranium','Iris'],
+  'Herbal':['Grass','Cut hay','Mint','Eucalyptus','Fennel','Thyme','Lavender'],
+  'Vegetal':['Green pepper','Asparagus','Tomato leaf','Olive'],
+  'Spice':['Black pepper','White pepper','Liquorice','Ginger','Cinnamon']
+};
+const AROMAS_SECONDARY = {
+  'Yeast':['Bread dough','Brioche','Biscuit','Pastry','Toast','Beer'],
+  'Malolactic':['Butter','Cream','Yoghurt','Cheese']
+};
+const AROMAS_TERTIARY = {
+  'Oak':['Vanilla','Clove','Nutmeg','Cedar','Pencil shavings','Charred wood','Smoke','Coconut','Dill'],
+  'Oxidative':['Almond','Hazelnut','Walnut','Coffee','Caramel','Toffee','Chocolate','Treacle'],
+  'Bottle Age':['Petrol / Kerosene','Honey','Toast','Mushroom','Forest floor','Leather','Earth','Tobacco','Game','Truffle']
+};
+const TANNIN_TEXTURES = ['Silky','Smooth','Rounded','Chalky','Grippy','Firm','Coarse','Harsh','Drying'];
+const COMPLEXITY = ['Simple','Moderate','Complex','Very complex'];
+const BALANCE = ['Unbalanced','Slightly unbalanced','Balanced','Very well balanced'];
+const TYPICITY = ['Atypical','Somewhat typical','Typical','Highly typical'];
+const STYLE = ['Lean / Elegant','Medium-bodied','Rich / Full'];
+
+// ── WSET Questions ────────────────────────────────────────
+const WSET_QUESTIONS = {
+  1: [
+    { q: 'What are the three main colours of wine?', a: 'Red, white and rose.' },
+    { q: 'Name the five factors that affect the style and quality of wine.', a: 'Climate, soil, grape variety, viticulture (vineyard management), and winemaking.' },
+    { q: 'What does tannin contribute to a wine?', a: 'Tannin gives red wines their drying, grippy texture. It acts as a preservative and comes from grape skins, seeds and oak barrels.' },
+    { q: 'What is the difference between a dry and a sweet wine?', a: 'A dry wine has little or no residual sugar. A sweet wine retains significant residual sugar after fermentation.' },
+    { q: 'Name three classic red grape varieties.', a: 'Cabernet Sauvignon, Merlot and Pinot Noir. Also: Syrah/Shiraz, Tempranillo, Sangiovese, Malbec.' },
+    { q: 'What temperature should red wine generally be served at?', a: 'Light reds: 12-14 C. Full-bodied reds: 16-18 C. Serving too warm makes alcohol feel harsh.' },
+    { q: 'What is acidity in wine and why does it matter?', a: 'Acidity gives wine freshness and crispness. It balances sweetness, preserves the wine and makes it food-friendly.' },
+    { q: 'Name two classic white grape varieties.', a: 'Chardonnay and Sauvignon Blanc. Also: Riesling, Pinot Grigio, Gewurztraminer, Viognier.' },
+    { q: 'What is a sparkling wine and name one example?', a: 'A wine with significant dissolved CO2 creating bubbles. Examples: Champagne, Prosecco, Cava.' },
+    { q: 'What food would you pair with a full-bodied red wine high in tannin?', a: 'Rich, fatty or protein-rich foods like red meat, lamb or aged hard cheese. Tannin binds to protein and softens on the palate.' },
+  ],
+  2: [
+    { q: 'What is the difference between Old World and New World wine regions?', a: 'Old World (Europe and Middle East) tends toward restrained, terroir-driven styles. New World (Americas, Australia, NZ, SA) typically produces riper, more fruit-forward wines.' },
+    { q: 'Explain malolactic fermentation (MLF) and its effect on wine.', a: 'MLF converts sharp malic acid into softer lactic acid. It reduces acidity and adds creamy, buttery texture. Common in Chardonnay and most red wines.' },
+    { q: 'What is the WSET Systematic Approach to Tasting?', a: 'A structured framework assessing wine by Appearance, Nose and Palate, leading to a Conclusions section covering quality and readiness to drink.' },
+    { q: 'Name the principal regions of Burgundy and their key varieties.', a: 'Chablis (Chardonnay), Cote de Nuits (Pinot Noir), Cote de Beaune (Chardonnay and Pinot Noir), Maconnais (Chardonnay).' },
+    { q: 'What climatic conditions suit Riesling, and what styles can it produce?', a: 'Cool climates such as Germany, Alsace and Austria. Styles range from bone dry to lusciously sweet (Spatlese, Auslese, TBA), always with high acidity.' },
+    { q: 'How does oak ageing affect wine flavour?', a: 'New oak adds vanilla, spice, cedar and toast. It also allows slow oxygen exchange which softens tannins. French oak is subtler; American oak more pronounced.' },
+    { q: 'What is residual sugar and how does it arise?', a: 'Residual sugar is the natural grape sugar remaining after fermentation stops. It can result from arrested fermentation, fortification, or using naturally very ripe grapes.' },
+    { q: 'Describe the production method for Champagne.', a: 'Traditional Method: base wine fermented, blended (assemblage), bottled with added sugar and yeast, second fermentation in bottle, aged on lees, riddled, disgorged, dosage added.' },
+    { q: 'What is Botrytis cinerea and which wines does it produce?', a: 'Noble rot is a fungus that dehydrates grapes, concentrating sugars and acids. It produces Sauternes, Tokaji Aszu and Trockenbeerenauslese.' },
+    { q: 'Name three fortified wines and their countries of origin.', a: 'Port (Portugal), Sherry (Spain), Madeira (Portugal). Also: Marsala (Italy), Muscat de Beaumes-de-Venise (France).' },
+  ],
+  3: [
+    { q: 'Explain the concept of terroir and its components.', a: 'Terroir is the complete natural environment: soil (geology, drainage, mineral content), climate (macro/meso/micro), aspect, altitude and topography. It shapes a wine\'s unique character beyond grape variety alone.' },
+    { q: 'What distinguishes a Premier Cru from a Grand Cru in Burgundy?', a: 'Grand Cru is the highest classification, covering specific named vineyards of exceptional quality. Premier Cru is one tier below. Both are site-specific; village wines carry only the commune name.' },
+    { q: 'Describe the differences between Vintage, NV and Prestige Cuvee Champagne.', a: 'NV blends multiple years for consistency. Vintage uses a single year\'s grapes, aged longer. Prestige Cuvee (e.g. Dom Perignon) uses the finest parcels with the longest ageing and highest price point.' },
+    { q: 'What are the key factors that determine wine quality at WSET Level 3?', a: 'Balance (acid, tannin, alcohol, sweetness, fruit), Length (finish), Intensity, Complexity and Expression of variety or origin. Combined to give Outstanding, Very Good, Good, Acceptable or Faulty.' },
+    { q: 'Explain the ageing potential of Nebbiolo-based wines.', a: 'Nebbiolo (Barolo, Barbaresco) has very high tannin, high acidity and high alcohol, and needs years to integrate. Barolo can age 20-30+ years, developing tar, roses, leather and forest floor.' },
+    { q: 'What is reduction in wine and how does it occur?', a: 'Reduction is a fault caused by insufficient oxygen during winemaking, producing sulphur compounds such as rotten egg, rubber or struck match aromas. It can partially resolve with aeration.' },
+    { q: 'Compare Syrah styles from the Northern Rhone versus Australia.', a: 'Northern Rhone (Hermitage, Cote-Rotie): cool climate, lean body, peppery, savoury, floral. Australian Shiraz: warm climate, full body, ripe dark fruit, chocolate, often oaky.' },
+    { q: 'What is typicity and why is it assessed in the tasting conclusions?', a: 'Typicity is how well a wine expresses the expected characteristics of its grape variety, region and style. A highly typical wine clearly reflects its origin; an atypical one may still be high quality but unconventional.' },
+    { q: 'Explain the solera system used in Sherry production.', a: 'A fractional blending system of stacked barrels. New wine enters the top (criadera); bottling draws from the oldest bottom barrel (solera). Ensures consistency and complexity across years.' },
+    { q: 'What is TCA and how does it affect wine?', a: '2,4,6-trichloroanisole is the compound causing cork taint. Aromas of damp cardboard, wet dog and musty cellar. Even tiny concentrations suppress fruit and ruin a wine.' },
+  ]
+};
+
+// ── State ─────────────────────────────────────────────────
+let currentUser = null;
+let notes = [];
+let customAromas = [];
+let view = 'home';
+let editId = null;
+let selectedId = null;
+let searchVal = '';
+let sortBy = 'date';
+let form = {};
+let duplicate = null;
+let saving = false;
+let unsub = null;
+
+// Study state
+let studyLevel = 1;
+let studyIndex = 0;
+let studyFlipped = false;
+let studyKnown = [];
+let studyUnknown = [];
+
+// ── Collection helpers ────────────────────────────────────
+function notesCol() {
+  return db.collection('users').doc(currentUser.uid).collection('notes');
+}
+function settingsDoc() {
+  return db.collection('users').doc(currentUser.uid).collection('settings').doc('aromas');
+}
+
+function emptyForm() {
+  return {
+    wineName:'',vintage:'',region:'',grape:'',producer:'',wineType:'red',photo:'',
+    clarity:'',intensity_app:'',colour:'',viscosity:'',effervescence:'',
+    condition:'Clean',faults:[],
+    intensity_nose:'',aroma_primary:[],aroma_secondary:[],aroma_tertiary:[],aroma_custom:[],
+    development:'',
+    sweetness:'',acidity:'',tannin:'',tannin_texture:'',alcohol:'',body:'',mousse:'',
+    intensity_palate:'',flavour_chars:[],finish:'',
+    complexity:'',balance:'',oak_influence:'',flavour_custom:[],
+    quality:'',readiness:'',potential:'',typicity:'',style:'',overall:'',score:'75',
+    date:new Date().toISOString().split('T')[0]
+  };
+}
+
+// ── Firebase ──────────────────────────────────────────────
+function initListener() {
+  if (unsub) unsub();
+  unsub = notesCol().orderBy('createdAt','desc').onSnapshot(snap => {
+    notes = snap.docs.map(d => ({id:d.id,...d.data()}));
+    if (view==='list') render();
+  }, err => { showError(err); });
+  settingsDoc().get().then(doc => {
+    if (doc.exists) customAromas = doc.data().list || [];
+  }).catch(()=>{});
+}
+
+async function doSave() {
+  if (!form.wineName || saving) return;
+  saving = true; render();
+  try {
+    const data = {...form, updatedAt: firebase.firestore.FieldValue.serverTimestamp()};
+    delete data.id;
+    if (editId) {
+      await notesCol().doc(editId).update(data);
+    } else {
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      await notesCol().add(data);
+    }
+    if (customAromas.length) await settingsDoc().set({list:customAromas});
+    form = emptyForm(); editId = null; duplicate = null; view = 'list';
+  } catch(e) { alert('Could not save. Check your internet connection.\n\n'+e.message); }
+  saving = false; render();
+}
+
+async function doDelete(id) {
+  if (!confirm('Delete this tasting note? This cannot be undone.')) return;
+  try { await notesCol().doc(id).delete(); }
+  catch(e) { alert('Could not delete: '+e.message); return; }
+  view = 'list'; render();
+}
+
+// ── Photo ─────────────────────────────────────────────────
+async function compressPhoto(file) {
+  return new Promise(resolve => {
+    const r = new FileReader();
+    r.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 600;
+        let w=img.width, h=img.height;
+        if(w>h){if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}}
+        else{if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}}
+        const c=document.createElement('canvas');
+        c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(c.toDataURL('image/jpeg',0.72));
+      };
+      img.src=e.target.result;
+    };
+    r.readAsDataURL(file);
+  });
+}
+
+// ── Utils ─────────────────────────────────────────────────
+function dotColor(t){return{red:'#8b1a1a',white:'#c9a83a',rose:'#c97a8a',sparkling:'#d4c060',fortified:'#8b6010'}[t]||'#8b7060';}
+function qColor(q){return{'Outstanding':'#c9a87a','Excellent':'#a0c87a','Very good':'#90c87a','Good':'#7ab8c8','Acceptable':'#c8b07a','Poor':'#c87a7a'}[q]||'#6b5040';}
+function qualityLabel(s){if(s>=95)return'Outstanding';if(s>=87)return'Excellent';if(s>=83)return'Very good';if(s>=80)return'Good';if(s>=70)return'Acceptable';return'Poor';}
+
+function getSorted() {
+  let r = notes.filter(n =>
+    (n.wineName||'').toLowerCase().includes(searchVal.toLowerCase())||
+    (n.region||'').toLowerCase().includes(searchVal.toLowerCase())||
+    (n.grape||'').toLowerCase().includes(searchVal.toLowerCase())||
+    (n.producer||'').toLowerCase().includes(searchVal.toLowerCase())
+  );
+  if(sortBy==='alpha') r.sort((a,b)=>a.wineName.localeCompare(b.wineName));
+  else if(sortBy==='score') r.sort((a,b)=>(parseInt(b.score)||0)-(parseInt(a.score)||0));
+  return r;
+}
+
+function checkDup(name) {
+  duplicate = name.length>2 ? (notes.find(n=>n.wineName.toLowerCase().includes(name.toLowerCase())&&n.id!==editId)||null) : null;
+}
+
+// ── Navigation ────────────────────────────────────────────
+function goHome(){view='home';render();}
+function goList(){view='list';editId=null;render();}
+function goNew(){form=emptyForm();editId=null;duplicate=null;view='form';render();}
+function goEdit(id){
+  const n=notes.find(x=>x.id===id);if(!n)return;
+  form={...emptyForm(),...n};editId=id;duplicate=null;view='form';render();
+}
+function openNote(id){selectedId=id;view='detail';render();}
+function cancelForm(){form=emptyForm();editId=null;duplicate=null;view='list';render();}
+function onSearch(v){searchVal=v;render();}
+function setSort(s){sortBy=s;render();}
+
+// ── Study actions ─────────────────────────────────────────
+function goStudy(){
+  view='study'; studyIndex=0; studyFlipped=false; studyKnown=[]; studyUnknown=[]; render();
+}
+function setStudyLevel(l){
+  studyLevel=l; studyIndex=0; studyFlipped=false; studyKnown=[]; studyUnknown=[]; render();
+}
+function flipCard(){ studyFlipped=!studyFlipped; render(); }
+function markCard(result){
+  if(result==='known') studyKnown.push(studyIndex); else studyUnknown.push(studyIndex);
+  studyFlipped=false;
+  if(studyIndex < WSET_QUESTIONS[studyLevel].length-1) studyIndex++;
+  render();
+}
+function restartStudy(){ studyIndex=0; studyFlipped=false; studyKnown=[]; studyUnknown=[]; render(); }
+
+// ── Form actions ──────────────────────────────────────────
+function setType(t){form.wineType=t;form.colour='';render();}
+function setField(f,v){
+  form[f]=v;
+  if(f==='wineName'){
+    checkDup(v);
+    updateDupBanner();
+    const btn=document.querySelector('.btn-save');
+    if(btn) btn.disabled=!v;
+  }
+}
+function setScore(v){
+  form.score=v;
+  const el=document.querySelector('.score-display');
+  if(el) el.textContent=`(${v}/100)`;
+}
+function toggleArr(field,val){
+  if(!Array.isArray(form[field])) form[field]=[];
+  const i=form[field].indexOf(val);
+  if(i>-1) form[field].splice(i,1); else form[field].push(val);
+  if(event&&event.currentTarget) event.currentTarget.classList.toggle('active');
+}
+function updateDupBanner(){
+  const ex=document.querySelector('.dup-warning');
+  const wrap=document.querySelector('.form-content');
+  if(!wrap) return;
+  if(duplicate&&!ex){
+    const d=document.createElement('div');d.className='dup-warning';
+    d.innerHTML=`<span class="dup-icon">&#9888;&#65039;</span><div><div class="dup-title">You may have tasted this before</div><div class="dup-sub">"${duplicate.wineName}" tasted on ${duplicate.date||'?'}</div><button class="dup-link" onclick="openNote('${duplicate.id}')">View that note</button></div>`;
+    wrap.insertBefore(d,wrap.firstChild);
+  } else if(!duplicate&&ex){ex.remove();}
+}
+async function handlePhoto(input){
+  if(!input.files[0]) return;
+  const comp=await compressPhoto(input.files[0]);
+  form.photo=comp;
+  const img=document.querySelector('.photo-preview');
+  const ph=document.querySelector('.photo-placeholder');
+  if(img){img.src=comp;img.style.display='block';}
+  if(ph) ph.style.display='none';
+}
+function addCustomAroma(){
+  const inp=document.getElementById('custom-input');
+  if(!inp||!inp.value.trim()) return;
+  const v=inp.value.trim();
+  if(!customAromas.includes(v)) customAromas.push(v);
+  if(!form.aroma_custom) form.aroma_custom=[];
+  if(!form.aroma_custom.includes(v)) form.aroma_custom.push(v);
+  inp.value='';
+  const wrap=document.getElementById('custom-wrap');
+  if(wrap) wrap.innerHTML=renderCustomBtns();
+}
+function renderCustomBtns(){
+  const all=[...new Set([...customAromas,...(form.aroma_custom||[])])];
+  return all.map(a=>`<button class="multi-btn${(form.aroma_custom||[]).includes(a)?' active':''}" onclick="toggleArr('aroma_custom','${a.replace(/'/g,"&#39;")}')">${a}</button>`).join('');
+}
+function addCustomFlavour(){
+  const inp=document.getElementById('custom-flavour-input');
+  if(!inp||!inp.value.trim()) return;
+  const v=inp.value.trim();
+  if(!form.flavour_custom) form.flavour_custom=[];
+  if(!form.flavour_custom.includes(v)) form.flavour_custom.push(v);
+  if(!form.flavour_chars) form.flavour_chars=[];
+  if(!form.flavour_chars.includes(v)) form.flavour_chars.push(v);
+  inp.value='';
+  const wrap=document.getElementById('custom-flavour-wrap');
+  if(wrap) wrap.innerHTML=renderCustomFlavourBtns();
+}
+function renderCustomFlavourBtns(){
+  const all=form.flavour_custom||[];
+  return all.map(a=>`<button class="multi-btn${(form.flavour_chars||[]).includes(a)?' active':''}" onclick="toggleArr('flavour_chars','${a.replace(/'/g,"&#39;")}')">${a}</button>`).join('');
+}
+function searchCellarTracker(){
+  const n=notes.find(x=>x.id===selectedId);if(!n) return;
+  const q=encodeURIComponent('site:cellartracker.com '+n.wineName+(n.vintage?' '+n.vintage:''));
+  window.open('https://www.google.com/search?q='+q,'_blank');
+}
+function searchWineSearcher(){
+  const n=notes.find(x=>x.id===selectedId);if(!n) return;
+  const q=encodeURIComponent(n.wineName+(n.vintage?' '+n.vintage:''));
+  window.open('https://www.wine-searcher.com/find/'+q,'_blank');
+}
+
+// ── HTML Helpers ──────────────────────────────────────────
+function sel(id,lbl,val,opts,req=false){
+  return `<div class="field"><label>${lbl}${req?'<span class="req">*</span>':''}</label>
+  <select id="${id}" onchange="setField('${id}',this.value)">
+    <option value="">Select...</option>
+    ${opts.map(o=>`<option value="${o}"${val===o?' selected':''}>${o}</option>`).join('')}
+  </select></div>`;
+}
+function inp(id,lbl,val,ph,type='text',req=false){
+  return `<div class="field"><label>${lbl}${req?'<span class="req">*</span>':''}</label>
+  <input type="${type}" id="${id}" value="${(val||'').toString().replace(/"/g,'&quot;')}" placeholder="${ph||''}" oninput="setField('${id}',this.value)"></div>`;
+}
+function multiGroup(field,lbl,groups){
+  return `<div class="field"><label>${lbl}</label>${
+    Object.entries(groups).map(([cat,items])=>
+      `<div class="aroma-cat"><div class="aroma-cat-label">${cat}</div><div class="multi-wrap">${
+        items.map(o=>`<button class="multi-btn${(form[field]||[]).includes(o)?' active':''}" onclick="toggleArr('${field}','${o.replace(/'/g,"&#39;")}')">${o}</button>`).join('')
+      }</div></div>`
+    ).join('')
+  }</div>`;
+}
+function detailRow(lbl,val){
+  if(!val||(Array.isArray(val)&&!val.length)) return '';
+  return `<div class="detail-row"><div class="dl">${lbl}</div><div class="dv">${Array.isArray(val)?val.join(', '):val}</div></div>`;
+}
+
+// ── Auth ──────────────────────────────────────────────────
+function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  firebase.auth().signInWithPopup(provider).catch(e => alert('Sign-in failed: ' + e.message));
+}
+function doSignOut() {
+  if (!confirm('Sign out of TasteNote?')) return;
+  if (unsub) { unsub(); unsub = null; }
+  notes = []; view = 'home';
+  firebase.auth().signOut();
+}
+
+// ── renderLogin ───────────────────────────────────────────
+function renderLogin() {
+  return `<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:24px;padding:30px;text-align:center;background:#f5efe6">
+    <div style="font-size:60px">&#127863;</div>
+    <div>
+      <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:40px;font-weight:300;color:#7a1a1a;letter-spacing:0.08em">TasteNote</div>
+      <div style="font-size:11px;color:#a08060;letter-spacing:0.22em;text-transform:uppercase;margin-top:6px">Your personal wine journal</div>
+    </div>
+    <div style="font-size:14px;color:#8b6848;max-width:300px;line-height:1.8;font-family:Georgia,serif">
+      Sign in to access your private cellar. Your tasting notes are stored securely and visible only to you.
+    </div>
+    <button onclick="signInWithGoogle()" style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #c9b09a;border-radius:6px;padding:13px 26px;cursor:pointer;font-family:Georgia,serif;font-size:15px;color:#3a2218;box-shadow:0 1px 5px rgba(0,0,0,0.08)">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Sign in with Google
+    </button>
+    <div style="font-size:11px;color:#b09878">WSET-style tasting notes · Private cellar tracking</div>
+  </div>`;
+}
+
+// ── renderHome ────────────────────────────────────────────
+function renderHome() {
+  return `<div style="min-height:100vh;background:#f5efe6;font-family:Georgia,serif;display:flex;flex-direction:column;align-items:center;">
+    <div style="width:100%;background:linear-gradient(160deg,#3a1208 0%,#7a1a1a 50%,#9b4a2a 100%);padding:52px 24px 48px;text-align:center;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:-60px;right:-60px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,0.04)"></div>
+      <div style="position:absolute;bottom:-80px;left:-40px;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,0.03)"></div>
+      <div style="font-size:52px;margin-bottom:12px;position:relative">&#127863;</div>
+      <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:40px;color:#f5ede0;font-weight:300;letter-spacing:0.1em;line-height:1.1;position:relative">TasteNote</div>
+      <div style="font-size:11px;color:rgba(245,237,224,0.6);letter-spacing:0.25em;text-transform:uppercase;margin-top:8px;margin-bottom:28px;position:relative">Your Wine Journey</div>
+      <div style="display:flex;justify-content:center;position:relative">
+        <div style="flex:1;max-width:110px;padding:12px 8px;border-right:1px solid rgba(255,255,255,0.15)">
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;color:#f5ede0;font-weight:300;line-height:1">500+</div>
+          <div style="font-size:9px;color:rgba(245,237,224,0.55);letter-spacing:0.15em;text-transform:uppercase;margin-top:4px">Study Questions</div>
+        </div>
+        <div style="flex:1;max-width:110px;padding:12px 8px;border-right:1px solid rgba(255,255,255,0.15)">
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;color:#f5ede0;font-weight:300;line-height:1">3</div>
+          <div style="font-size:9px;color:rgba(245,237,224,0.55);letter-spacing:0.15em;text-transform:uppercase;margin-top:4px">WSET Levels</div>
+        </div>
+        <div style="flex:1;max-width:110px;padding:12px 8px">
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;color:#f5ede0;font-weight:300;line-height:1">Free</div>
+          <div style="font-size:9px;color:rgba(245,237,224,0.55);letter-spacing:0.15em;text-transform:uppercase;margin-top:4px">Always</div>
+        </div>
+      </div>
+    </div>
+    <div style="width:100%;max-width:500px;padding:32px 16px 80px">
+      <div style="font-size:10px;color:#a08060;letter-spacing:0.2em;text-transform:uppercase;text-align:center;margin-bottom:20px;font-family:'Cormorant Garamond',Georgia,serif;font-weight:600">Where would you like to go?</div>
+
+      <div onclick="goStudy()" style="background:#ede3d6;border:1px solid #d9c8b4;border-radius:10px;padding:24px 22px;margin-bottom:14px;cursor:pointer;display:flex;gap:18px;align-items:flex-start;box-shadow:0 2px 10px rgba(58,34,24,0.07)">
+        <div style="width:54px;height:54px;border-radius:50%;background:#7a1a1a;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 4px 12px rgba(122,26,26,0.4)">&#127891;</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+            <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;color:#3a2218;font-weight:400">WSET Study Cards</div>
+            <div style="background:#4a8a5a;color:#f5ede0;font-size:8px;letter-spacing:0.12em;padding:2px 7px;border-radius:20px;font-family:Georgia,serif;flex-shrink:0">FREE</div>
+          </div>
+          <div style="font-size:10px;color:#7a1a1a;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;font-family:'Cormorant Garamond',Georgia,serif;font-weight:600">Level 1 · Level 2 · Level 3</div>
+          <div style="font-size:13px;color:#8b6848;line-height:1.6">Master the WSET syllabus with 500+ flashcards. Track what you know and focus on what you do not.</div>
+        </div>
+        <div style="color:#c9b09a;font-size:20px;flex-shrink:0;align-self:center">&#8250;</div>
+      </div>
+
+      <div onclick="goList()" style="background:#ede3d6;border:1px solid #d9c8b4;border-radius:10px;padding:24px 22px;margin-bottom:14px;cursor:pointer;display:flex;gap:18px;align-items:flex-start;box-shadow:0 2px 10px rgba(58,34,24,0.07)">
+        <div style="width:54px;height:54px;border-radius:50%;background:#4a3060;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 4px 12px rgba(74,48,96,0.4)">&#128211;</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+            <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;color:#3a2218;font-weight:400">My Tasting Notes</div>
+            <div style="background:#4a8a5a;color:#f5ede0;font-size:8px;letter-spacing:0.12em;padding:2px 7px;border-radius:20px;font-family:Georgia,serif;flex-shrink:0">FREE</div>
+          </div>
+          <div style="font-size:10px;color:#4a3060;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;font-family:'Cormorant Garamond',Georgia,serif;font-weight:600">WSET-style · Cloud Synced</div>
+          <div style="font-size:13px;color:#8b6848;line-height:1.6">Record every wine you taste. Appearance, nose, palate, conclusions, structured like a professional.</div>
+        </div>
+        <div style="color:#c9b09a;font-size:20px;flex-shrink:0;align-self:center">&#8250;</div>
+      </div>
+
+      <div style="background:linear-gradient(135deg,#ede3d6,#e8dace);border:1px solid #d9c8b4;border-radius:10px;padding:20px 22px;margin-top:6px">
+        <div style="font-size:9px;color:#a08060;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:8px;font-family:'Cormorant Garamond',Georgia,serif;font-weight:600">&#128161; Wine Tip</div>
+        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:16px;color:#3a2218;line-height:1.6;font-style:italic;font-weight:300">
+          "Tannin binds to protein, which is why a tannic Cabernet Sauvignon pairs so beautifully with a fatty ribeye steak."
+        </div>
+      </div>
+
+      <div style="background:linear-gradient(135deg,#7a1a1a,#9b2a2a);border-radius:10px;padding:20px 22px;margin-top:14px;display:flex;align-items:center;gap:16px;cursor:pointer">
+        <div style="flex:1">
+          <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:#f5ede0;font-weight:400;margin-bottom:4px">Remove Ads</div>
+          <div style="font-size:12px;color:rgba(245,237,224,0.7);line-height:1.5">Everything is free. Pay once to enjoy TasteNote completely ad-free, forever.</div>
+        </div>
+        <div style="background:#f5ede0;color:#7a1a1a;padding:10px 16px;border-radius:6px;font-size:13px;font-weight:600;font-family:Georgia,serif;flex-shrink:0">£4.99</div>
+      </div>
+
+      <div style="text-align:center;margin-top:24px;font-size:10px;color:#c9b09a">
+        Signed in as ${currentUser.displayName||currentUser.email}&nbsp;&nbsp;
+        <button onclick="doSignOut()" style="background:none;border:none;color:#c9b09a;font-size:10px;cursor:pointer;font-family:Georgia,serif;text-decoration:underline">Sign out</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── renderStudy ───────────────────────────────────────────
+function renderStudy() {
+  const LC = {
+    1:{bg:'#7a1a1a',light:'#f5ede0',border:'#9b2a2a',label:'Level 1 - Award in Wines'},
+    2:{bg:'#4a3060',light:'#f0ebf8',border:'#6a4a90',label:'Level 2 - Award in Wines'},
+    3:{bg:'#1a4a2a',light:'#e8f5ec',border:'#2a7a3a',label:'Level 3 - Award in Wines'}
+  };
+  const col = LC[studyLevel];
+  const cards = WSET_QUESTIONS[studyLevel];
+  const card = cards[studyIndex];
+  const total = cards.length;
+  const progress = (studyIndex / total) * 100;
+  const done = studyIndex===total-1 && (studyKnown.includes(studyIndex)||studyUnknown.includes(studyIndex));
+
+  const levelBtns = [1,2,3].map(l =>
+    `<button onclick="setStudyLevel(${l})" style="padding:8px 20px;border-radius:20px;border:1px solid ${studyLevel===l?LC[l].border:'#c9b09a'};background:${studyLevel===l?LC[l].bg:'transparent'};color:${studyLevel===l?LC[l].light:'#8b6848'};font-size:13px;cursor:pointer;font-family:Georgia,serif;letter-spacing:0.04em;font-weight:${studyLevel===l?'600':'400'}">Level ${l}</button>`
+  ).join('');
+
+  const cardHTML = done ? `
+    <div style="background:#ede3d6;border:1px solid #d9c8b4;border-radius:10px;padding:36px 28px;text-align:center">
+      <div style="font-size:40px;margin-bottom:12px">&#127881;</div>
+      <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;color:#7a1a1a;font-weight:300;margin-bottom:8px">Round complete</div>
+      <div style="font-size:13px;color:#8b6848;margin-bottom:24px;line-height:1.6">
+        You got <strong style="color:#4a8a5a">${studyKnown.length}</strong> right and <strong style="color:#8b2a2a">${studyUnknown.length}</strong> to keep working on.
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="restartStudy()" style="flex:1;padding:12px;border-radius:6px;border:1px solid #c9b09a;background:transparent;color:#5a2a10;font-size:13px;cursor:pointer;font-family:Georgia,serif">Start again</button>
+        <button onclick="setStudyLevel(${studyLevel===3?1:studyLevel+1})" style="flex:1;padding:12px;border-radius:6px;border:1px solid ${col.border};background:${col.bg};color:${col.light};font-size:13px;cursor:pointer;font-family:Georgia,serif;font-weight:600">Next level</button>
+      </div>
+    </div>` : `
+    <div onclick="flipCard()" style="background:${studyFlipped?col.bg:'#ede3d6'};border:1px solid ${studyFlipped?col.border:'#d9c8b4'};border-radius:10px;padding:32px 28px;min-height:260px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;margin-bottom:16px;box-shadow:0 2px 12px rgba(58,34,24,0.08);position:relative">
+      <div style="position:absolute;top:14px;left:18px;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:${studyFlipped?'rgba(255,255,255,0.5)':'#b09878'};font-family:'Cormorant Garamond',Georgia,serif;font-weight:600">${studyFlipped?'Answer':'Question'}</div>
+      <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:${studyFlipped?16:20}px;color:${studyFlipped?col.light:'#3a2218'};line-height:1.6;letter-spacing:0.02em">${studyFlipped?card.a:card.q}</div>
+      ${!studyFlipped?'<div style="position:absolute;bottom:14px;font-size:10px;color:#b09878;letter-spacing:0.1em">tap to reveal</div>':''}
+    </div>
+    ${studyFlipped?`
+    <div style="display:flex;gap:10px">
+      <button onclick="markCard('unknown')" style="flex:1;padding:13px;border-radius:6px;border:1px solid #c9a0a0;background:#f5e8e4;color:#8b2a2a;font-size:14px;cursor:pointer;font-family:Georgia,serif">Still learning</button>
+      <button onclick="markCard('known')" style="flex:1;padding:13px;border-radius:6px;border:1px solid ${col.border};background:${col.bg};color:${col.light};font-size:14px;cursor:pointer;font-family:Georgia,serif;font-weight:600">Got it</button>
+    </div>`:''}`;
+
+  return `<div class="header">
+    <div class="header-top">
+      <button class="btn" onclick="goHome()">&larr; Home</button>
+      <div class="app-title">&#127891; Study</div>
+      <div style="width:80px"></div>
+    </div>
+  </div>
+  <div class="content">
+    <div style="display:flex;gap:8px;margin-bottom:20px;justify-content:center">${levelBtns}</div>
+    <div style="font-size:11px;color:${col.bg};letter-spacing:0.15em;text-transform:uppercase;margin-bottom:16px;font-family:'Cormorant Garamond',Georgia,serif;font-weight:600;text-align:center">${col.label}</div>
+    <div style="margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#a08060;margin-bottom:6px">
+        <span>${studyIndex+1} of ${total}</span>
+        <span style="color:#4a8a5a">&#10003; ${studyKnown.length} known</span>
+      </div>
+      <div style="background:#e8dace;border-radius:4px;height:4px;overflow:hidden">
+        <div style="width:${progress}%;height:100%;background:${col.bg};border-radius:4px"></div>
+      </div>
+    </div>
+    ${cardHTML}
+    <div style="margin-top:24px;font-size:11px;color:#c9b09a;text-align:center;letter-spacing:0.05em">
+      Sample - Full version includes 500+ questions
+    </div>
+  </div>`;
+}
+
+// ── showError ─────────────────────────────────────────────
+function showError(err){
+  const msg = err && err.code==='permission-denied'
+    ? 'Firestore security rules are blocking access.'
+    : 'Could not connect to Firestore.';
+  document.getElementById('app').innerHTML=`<div class="error-state">
+    <div style="font-size:40px">&#128272;</div>
+    <div class="error-title">${msg}</div>
+    <div class="error-sub">You need to enable Firestore and set your security rules. Follow these steps:</div>
+    <ol class="error-steps">
+      <li>In Firebase console, click <strong>Firestore Database</strong> in the left menu</li>
+      <li>Click <strong>Create database</strong>, choose <strong>Start in test mode</strong>, then Next and Enable</li>
+      <li>Once created, click the <strong>Rules</strong> tab</li>
+      <li>Replace everything with: <code style="font-size:11px;color:#c9a87a">allow read, write: if true;</code></li>
+      <li>Click <strong>Publish</strong>, then reload this page</li>
+    </ol>
+    <button class="btn-primary" onclick="location.reload()" style="margin-top:16px">Reload</button>
+  </div>`;
+}
+
+// ── render ────────────────────────────────────────────────
+function render(){
+  if(!currentUser){ document.getElementById('app').innerHTML=renderLogin(); return; }
+  if(view==='home') document.getElementById('app').innerHTML=renderHome();
+  else if(view==='study') document.getElementById('app').innerHTML=renderStudy();
+  else if(view==='form') document.getElementById('app').innerHTML=renderForm();
+  else if(view==='detail') document.getElementById('app').innerHTML=renderDetail();
+  else document.getElementById('app').innerHTML=renderList();
+}
+
+// ── CSV helpers ───────────────────────────────────────────
+function downloadTemplate(){
+  const cols=['Date (YYYY-MM-DD)','Wine Name','Producer','Vintage','Region','Grape','Type (red/white/rose/sparkling/fortified)','Score (50-100)','Style','Clarity','Colour Intensity','Colour','Viscosity','Effervescence','Nose Condition','Nose Intensity','Aromas (comma separated)','Development','Sweetness','Acidity','Tannin','Tannin Texture','Mousse','Alcohol','Body','Flavour Intensity','Flavours (comma separated)','Finish','Complexity','Balance','Oak Influence','Typicity','Readiness','Ageing Potential (years)','Overall Notes'];
+  const example=['2026-01-15','Chateau Example','Example Producer','2020','Bordeaux','Cabernet Sauvignon','red','88','Elegant','Clear','Medium','Garnet','Medium','','Clean','Medium+','Blackberry, Plum, Cedar','Developing','Dry','Medium+','Medium','Silky','','Medium','Medium-bodied','Medium+','Dark fruit, Spice','Long','Complex','Balanced','Light oak','Typical','Ready','5','Excellent with lamb'];
+  const csv=[cols.join(','),example.join(',')].join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='TasteNote-import-template.csv';
+  a.click();
+}
+
+function importCSV(){
+  const input=document.createElement('input');
+  input.type='file'; input.accept='.csv'; input.style.display='none';
+  document.body.appendChild(input);
+  input.onchange=async e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const text=await file.text();
+    const lines=text.split('\n').filter(l=>l.trim());
+    if(lines.length<2){alert('No data found in file.');return;}
+    const headers=lines[0].split(',').map(h=>h.replace(/^"|"$/g,'').trim());
+    let imported=0,failed=0;
+    for(let i=1;i<lines.length;i++){
+      try{
+        const vals=[];let cur='',inQ=false;
+        for(const ch of lines[i]){
+          if(ch==='"'){inQ=!inQ;}
+          else if(ch===','&&!inQ){vals.push(cur.trim());cur='';}
+          else cur+=ch;
+        }
+        vals.push(cur.trim());
+        const get=(name)=>{const idx=headers.findIndex(h=>h.toLowerCase().includes(name.toLowerCase()));return idx>=0?(vals[idx]||'').replace(/^"|"$/g,'').trim():'';};
+        const getArr=(name)=>{const v=get(name);return v?v.split(',').map(x=>x.trim()).filter(Boolean):[];};
+        const note={
+          wineName:get('Wine Name'),producer:get('Producer'),vintage:get('Vintage'),region:get('Region'),grape:get('Grape'),wineType:get('Type'),
+          date:get('Date')||new Date().toISOString().split('T')[0],
+          score:parseInt(get('Score'))||0,quality:qualityLabel(parseInt(get('Score'))||0),style:get('Style'),
+          clarity:get('Clarity'),intensity_app:get('Colour Intensity'),colour:get('Colour'),viscosity:get('Viscosity'),effervescence:get('Effervescence'),
+          condition:get('Nose Condition'),intensity_nose:get('Nose Intensity'),aroma_primary:getArr('Aromas'),
+          aroma_secondary:[],aroma_tertiary:[],aroma_custom:[],development:get('Development'),
+          sweetness:get('Sweetness'),acidity:get('Acidity'),tannin:get('Tannin'),tannin_texture:get('Tannin Texture'),
+          mousse:get('Mousse'),alcohol:get('Alcohol'),body:get('Body'),intensity_palate:get('Flavour Intensity'),
+          flavour_chars:getArr('Flavours'),flavour_custom:[],finish:get('Finish'),complexity:get('Complexity'),
+          balance:get('Balance'),oak_influence:get('Oak Influence'),typicity:get('Typicity'),readiness:get('Readiness'),
+          potential:parseInt(get('Ageing'))||'',overall:get('Overall'),photo:'',
+          createdAt:firebase.firestore.FieldValue.serverTimestamp()
+        };
+        if(!note.wineName){failed++;continue;}
+        await notesCol().add(note); imported++;
+      }catch(e){failed++;console.error('Row '+i+' failed:',e);}
+    }
+    alert('Import complete!\n' + imported + ' notes imported' + (failed>0?'\n'+failed+' rows skipped':''));
+    document.body.removeChild(input);
+  };
+  input.click();
+}
+
+function exportCSV(){
+  if(!notes.length){alert('No notes to export.');return;}
+  const cols=['Date','Wine Name','Producer','Vintage','Region','Grape','Type','Score','Quality','Style','Clarity','Colour Intensity','Colour','Viscosity','Effervescence','Nose Condition','Nose Intensity','Aromas','Development','Sweetness','Acidity','Tannin','Tannin Texture','Mousse','Alcohol','Body','Flavour Intensity','Flavours','Finish','Complexity','Balance','Oak Influence','Typicity','Readiness','Ageing Potential','Overall Notes'];
+  const esc=v=>{if(Array.isArray(v)) v=v.join(', ');v=String(v||'');if(v.includes(',')||v.includes('"')||v.includes('\n')) v='"'+v.replace(/"/g,'""')+'"';return v;};
+  const rows=notes.map(n=>[
+    n.date,n.wineName,n.producer,n.vintage,n.region,n.grape,n.wineType,n.score,n.quality,n.style,
+    n.clarity,n.intensity_app,n.colour,n.viscosity,n.effervescence,n.condition,n.intensity_nose,
+    [...(n.aroma_primary||[]),...(n.aroma_secondary||[]),...(n.aroma_tertiary||[]),...(n.aroma_custom||[])],
+    n.development,n.sweetness,n.acidity,n.tannin,n.tannin_texture,n.mousse,n.alcohol,n.body,
+    n.intensity_palate,[...(n.flavour_chars||[]),...(n.flavour_custom||[])],n.finish,n.complexity,
+    n.balance,n.oak_influence,n.typicity,n.readiness,n.potential?n.potential+' years':'',n.overall
+  ].map(esc).join(','));
+  const csv=[cols.join(','),...rows].join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='TasteNote-notes-'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();
+}
+
+// ── renderList ────────────────────────────────────────────
+function renderList(){
+  const filtered=getSorted();
+  const sortBtns=['date','alpha','score'].map(s=>
+    `<button class="sort-btn${sortBy===s?' active':''}" onclick="setSort('${s}')">${{date:'Recent',alpha:'A-Z',score:'Score'}[s]}</button>`).join('');
+
+  const cards=filtered.length===0
+    ?(notes.length===0
+      ?`<div class="empty-state"><div class="empty-big">&#127863;</div><div class="empty-title">Your cellar awaits</div><div class="empty-sub">Tap + New Note to log your first tasting</div></div>`
+      :`<div class="empty-state"><div class="empty-sub">No wines match "${searchVal}"</div></div>`)
+    :filtered.map(n=>{
+      const dot=dotColor(n.wineType);
+      const meta=[n.vintage,n.grape,n.region].filter(Boolean).join(' · ');
+      const allA=[...(n.aroma_primary||[]),...(n.aroma_secondary||[]),...(n.aroma_tertiary||[]),...(n.aroma_custom||[])];
+      const aStr=allA.slice(0,4).join(', ')+(allA.length>4?'...':'');
+      return `<div class="wine-card" onclick="openNote('${n.id}')">
+        ${n.photo?`<div class="card-photo"><img src="${n.photo}" alt=""></div>`:`<div class="card-dot-wrap"><div class="dot" style="background:${dot}"></div></div>`}
+        <div class="card-body">
+          <div class="card-name">${n.wineName}</div>
+          ${meta?`<div class="card-meta">${meta}</div>`:''}
+          ${aStr?`<div class="card-aromas">${aStr}</div>`:''}
+        </div>
+        <div class="card-right">
+          ${n.score?`<div class="card-score">${n.score}</div>`:''}
+          ${n.quality?`<div class="card-quality" style="color:${qColor(n.quality)}">${n.quality}</div>`:''}
+          <div class="card-date">${n.date||''}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+  return `<div class="header">
+    <div class="header-top">
+      <div onclick="goHome()" style="cursor:pointer">
+        <h1 class="app-title">&#127863; TasteNote</h1>
+        <p class="app-sub">WSET · ${notes.length} wine${notes.length!==1?'s':''} tasted</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="downloadTemplate()">&#128203; Template</button>
+        <button class="btn" onclick="importCSV()">&#8679; Import</button>
+        <button class="btn" onclick="exportCSV()">&#8681; Export</button>
+        <button class="btn-primary" onclick="goNew()">+ New Note</button>
+      </div>
+    </div>
+    <input class="search-bar" placeholder="Search wines, regions, grapes, producers..." value="${searchVal}" oninput="onSearch(this.value)">
+    <div class="sort-bar">${sortBtns}</div>
+  </div>
+  <div class="content">${cards}</div>`;
+}
+
+// ── renderForm ────────────────────────────────────────────
+function renderForm(){
+  const isEdit=!!editId;
+  const colours=COLOURS[form.wineType]||[];
+  const typeBtns=WINE_TYPES.map(t=>`<button class="type-btn${form.wineType===t?' active':''}" onclick="setType('${t}')">${t}</button>`).join('');
+  const allFlavours=[...Object.values(AROMAS_PRIMARY).flat(),...Object.values(AROMAS_TERTIARY).flat()];
+
+  return `<div class="header">
+    <div class="header-top">
+      <button class="btn" onclick="cancelForm()">&larr; Cancel</button>
+      <div class="form-title">${isEdit?'Edit Note':'New Tasting Note'}</div>
+      <button class="btn-primary btn-save" onclick="doSave()" ${!form.wineName||saving?'disabled':''}>${saving?'Saving...':'Save'}</button>
+    </div>
+  </div>
+  <div class="form-content">
+
+    <div class="section">
+      <div class="section-head"><span class="sec-num">0</span><div><div class="sec-title">The Wine</div><div class="sec-sub">Basic details and photo</div></div></div>
+      <div class="field">
+        <label>Label Photo</label>
+        <div class="photo-upload" onclick="document.getElementById('photo-input').click()">
+          ${form.photo?`<img class="photo-preview" src="${form.photo}" style="width:100%;max-height:220px;object-fit:cover;display:block">`:`<div class="photo-placeholder">&#128247; Tap to add a photo of the label</div>`}
+        </div>
+        <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhoto(this)">
+        ${form.photo?`<button class="btn" style="margin-top:6px;font-size:11px;padding:5px 10px" onclick="form.photo='';document.querySelector('.photo-upload').innerHTML='<div class=\\'photo-placeholder\\'>&#128247; Tap to add a photo of the label</div>'">Remove photo</button>`:''}
+      </div>
+      ${inp('wineName','Wine Name',form.wineName,'e.g. Chateau Margaux','text',true)}
+      ${inp('producer','Producer / Chateau',form.producer,'e.g. Chateau Margaux')}
+      <div class="grid2">
+        ${inp('vintage','Vintage',form.vintage,'e.g. 2019')}
+        ${inp('date','Date Tasted',form.date,'','date')}
+      </div>
+      ${inp('region','Region / Appellation',form.region,'e.g. Pauillac, Bordeaux, France')}
+      ${inp('grape','Grape Variety / Blend',form.grape,'e.g. Cabernet Sauvignon 70%, Merlot 30%')}
+      <div class="field"><label>Wine Type</label><div class="type-btns">${typeBtns}</div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><span class="sec-num">I</span><div><div class="sec-title">Appearance</div><div class="sec-sub">What do you see?</div></div></div>
+      ${sel('clarity','Clarity',form.clarity,['Clear','Hazy'])}
+      ${sel('intensity_app','Intensity',form.intensity_app,['Pale','Medium','Deep'])}
+      <div class="field"><label>Colour</label>
+        <select id="colour" onchange="setField('colour',this.value)">
+          <option value="">Select...</option>
+          ${colours.map(c=>`<option value="${c}"${form.colour===c?' selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      ${sel('viscosity','Viscosity / Legs',form.viscosity,['Low','Medium','High'])}
+      ${form.wineType==='sparkling'?sel('effervescence','Effervescence / Mousse',form.effervescence,['Delicate / Fine','Moderate','Abundant','Coarse']):''}
+    </div>
+
+    <div class="section">
+      <div class="section-head"><span class="sec-num">II</span><div><div class="sec-title">Nose</div><div class="sec-sub">What do you smell?</div></div></div>
+      ${sel('condition','Condition / Faults',form.condition,FAULTS)}
+      ${sel('intensity_nose','Intensity',form.intensity_nose,['Light','Medium-','Medium','Medium+','Pronounced'])}
+      ${multiGroup('aroma_primary','Primary Aromas (Grape and Vineyard)',AROMAS_PRIMARY)}
+      ${multiGroup('aroma_secondary','Secondary Aromas (Fermentation)',AROMAS_SECONDARY)}
+      ${multiGroup('aroma_tertiary','Tertiary Aromas (Maturation, Oak and Bottle Age)',AROMAS_TERTIARY)}
+      <div class="field">
+        <label>Your Own Aromas</label>
+        <div id="custom-wrap" class="multi-wrap">${renderCustomBtns()}</div>
+        <div class="custom-add">
+          <input type="text" id="custom-input" placeholder="Add your own aroma...">
+          <button class="btn" onclick="addCustomAroma()" style="padding:8px 14px;font-size:12px">+ Add</button>
+        </div>
+      </div>
+      ${sel('development','Development',form.development,['Youthful','Developing','Fully developed','Tired / past its best'])}
+    </div>
+
+    <div class="section">
+      <div class="section-head"><span class="sec-num">III</span><div><div class="sec-title">Palate</div><div class="sec-sub">What do you taste?</div></div></div>
+      ${sel('sweetness','Sweetness',form.sweetness,['Bone dry','Dry','Off-dry','Medium-sweet','Sweet','Luscious'])}
+      ${sel('acidity','Acidity',form.acidity,['Low','Medium-','Medium','Medium+','High'])}
+      ${(form.wineType==='red'||form.wineType==='fortified')?sel('tannin','Tannin Level',form.tannin,['Low','Medium-','Medium','Medium+','High']):''}
+      ${(form.wineType==='red'||form.wineType==='fortified')?sel('tannin_texture','Tannin Texture',form.tannin_texture,TANNIN_TEXTURES):''}
+      ${form.wineType==='sparkling'?sel('mousse','Mousse Quality',form.mousse,['Aggressive','Creamy / Persistent','Delicate / Fine','Frothy']):''}
+      ${sel('alcohol','Alcohol',form.alcohol,['Low (below 11%)','Medium (11-13.9%)','High (14%+)'])}
+      ${sel('body','Body',form.body,['Light','Medium-','Medium','Medium+','Full'])}
+      ${sel('intensity_palate','Flavour Intensity',form.intensity_palate,['Light','Medium-','Medium','Medium+','Pronounced'])}
+      <div class="field"><label>Flavour Characteristics</label>
+        <div class="multi-wrap">${allFlavours.map(o=>`<button class="multi-btn${(form.flavour_chars||[]).includes(o)?' active':''}" onclick="toggleArr('flavour_chars','${o.replace(/'/g,"&#39;")}')">${o}</button>`).join('')}</div>
+        <div id="custom-flavour-wrap" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:5px">${renderCustomFlavourBtns()}</div>
+        <div class="custom-add" style="margin-top:8px">
+          <input type="text" id="custom-flavour-input" placeholder="Add your own flavour...">
+          <button class="btn" onclick="addCustomFlavour()" style="padding:8px 14px;font-size:12px">+ Add</button>
+        </div>
+      </div>
+      ${sel('finish','Finish',form.finish,['Short (under 3s)','Medium- (3-4s)','Medium (5-6s)','Medium+ (7-9s)','Long (10s+)'])}
+      ${sel('complexity','Complexity',form.complexity,COMPLEXITY)}
+      ${sel('balance','Balance',form.balance,BALANCE)}
+      ${sel('oak_influence','Oak Influence on Palate',form.oak_influence,['None','Subtle','Moderate','Prominent'])}
+    </div>
+
+    <div class="section">
+      <div class="section-head"><span class="sec-num">IV</span><div><div class="sec-title">Conclusions</div><div class="sec-sub">Your overall assessment</div></div></div>
+      ${sel('quality','Quality Level',form.quality,['Poor','Acceptable','Good','Very good','Outstanding'])}
+      ${sel('style','Style',form.style,STYLE)}
+      ${sel('typicity','Typicity',form.typicity,TYPICITY)}
+      ${sel('readiness','Readiness for Drinking',form.readiness,['Too young, needs time','Can drink now but has potential','Drink now, at peak','Past its best'])}
+      ${inp('potential','Ageing Potential (years)',form.potential,'e.g. 10','number')}
+      <div class="field">
+        <label>Personal Score <span class="score-display">(${form.score||'75'}/100)</span></label>
+        <input type="range" min="50" max="100" value="${form.score||75}" oninput="setScore(this.value)">
+        <div class="range-labels"><span>50 Faulty</span><span>70 Acceptable</span><span>80 Good</span><span>87 Excellent</span><span>95+ Outstanding</span></div>
+      </div>
+      <div class="field">
+        <label>Overall Impressions and Notes</label>
+        <textarea rows="4" placeholder="Your personal thoughts, food pairings, where you had it, what made it special..." oninput="setField('overall',this.value)">${form.overall||''}</textarea>
+      </div>
+    </div>
+
+    <button class="btn-primary" style="width:100%;padding:14px" id="bottom-save-btn" onclick="doSave()">${saving?'Saving...':isEdit?'Update Note':'Save Tasting Note'}</button>
+  </div>`;
+  setTimeout(()=>{const b=document.getElementById('bottom-save-btn');if(b) b.disabled=(!form.wineName||saving);},0);
+}
+
+// ── renderDetail ──────────────────────────────────────────
+function renderDetail(){
+  const n=notes.find(x=>x.id===selectedId);
+  if(!n){view='list';return renderList();}
+  const dot=dotColor(n.wineType);
+  const meta=[n.vintage,n.grape,n.region].filter(Boolean).join(' · ');
+  const allA=[...(n.aroma_primary||[]),...(n.aroma_secondary||[]),...(n.aroma_tertiary||[]),...(n.aroma_custom||[])];
+
+  return `<div class="header">
+    <div class="header-top">
+      <button class="btn" onclick="goList()">&larr; Back</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="goEdit('${n.id}')">&#9999;&#65039; Edit</button>
+        <button class="btn-danger" onclick="doDelete('${n.id}')">Delete</button>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+    ${n.photo?`<img src="${n.photo}" style="width:100%;max-height:420px;object-fit:contain;background:#e8dece;border-radius:6px;margin-bottom:20px">`:''}
+    <div class="detail-hero">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <div class="dot" style="background:${dot};width:11px;height:11px"></div>
+        <div class="detail-name">${n.wineName}</div>
+      </div>
+      ${n.producer?`<div style="font-size:14px;color:#8b7060;margin-bottom:2px">${n.producer}</div>`:''}
+      <div class="detail-meta">${meta}</div>
+      <div class="detail-date">${n.date||''}</div>
+    </div>
+    ${n.score?`<div class="score-box">
+      <div class="score-big-num">${n.score}<span style="font-size:18px;color:#4a3028">/100</span></div>
+      <div>
+        <div class="score-label-sm">Personal Score</div>
+        ${n.quality?`<div style="font-size:15px;color:${qColor(n.quality)};margin-top:3px">${n.quality}</div>`:''}
+        ${n.style?`<div style="font-size:12px;color:#6b5040;margin-top:2px">${n.style}</div>`:''}
+      </div>
+    </div>`:''}
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="btn" style="flex:1" onclick="searchCellarTracker()">&#128269; CellarTracker</button>
+      <button class="btn" style="flex:1" onclick="searchWineSearcher()">&#128176; Wine-Searcher</button>
+    </div>
+    <div class="detail-section"><h4>Appearance</h4>
+      ${detailRow('Clarity',n.clarity)}${detailRow('Intensity',n.intensity_app)}${detailRow('Colour',n.colour)}${detailRow('Viscosity',n.viscosity)}${detailRow('Effervescence',n.effervescence)}
+    </div>
+    <div class="detail-section"><h4>Nose</h4>
+      ${detailRow('Condition',n.condition)}${detailRow('Intensity',n.intensity_nose)}
+      ${allA.length?detailRow('Aromas',allA):''}
+      ${detailRow('Development',n.development)}
+    </div>
+    <div class="detail-section"><h4>Palate</h4>
+      ${detailRow('Sweetness',n.sweetness)}${detailRow('Acidity',n.acidity)}${detailRow('Tannin Level',n.tannin)}${detailRow('Tannin Texture',n.tannin_texture)}${detailRow('Mousse',n.mousse)}${detailRow('Alcohol',n.alcohol)}${detailRow('Body',n.body)}${detailRow('Flavour Intensity',n.intensity_palate)}${detailRow('Flavours',n.flavour_chars)}${detailRow('Finish',n.finish)}${detailRow('Complexity',n.complexity)}${detailRow('Balance',n.balance)}${detailRow('Oak Influence',n.oak_influence)}
+    </div>
+    <div class="detail-section"><h4>Conclusions</h4>
+      ${detailRow('Quality',n.quality)}${detailRow('Style',n.style)}${detailRow('Typicity',n.typicity)}${detailRow('Readiness',n.readiness)}${n.potential?detailRow('Ageing Potential',n.potential+' years'):''}${detailRow('Notes',n.overall)}
+    </div>
+    <div style="margin-bottom:50px"></div>
+  </div>`;
+}
+
+// ── PWA ───────────────────────────────────────────────────
+(function(){
+  const icon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="80" fill="#7a1a1a"/><text x="256" y="400" font-size="340" text-anchor="middle" font-family="serif">&#127863;</text></svg>`;
+  const manifest = {
+    name:'TasteNote',short_name:'TasteNote',
+    description:'WSET-style wine tasting notes and study cards',
+    start_url:'./',display:'standalone',
+    background_color:'#f5efe6',theme_color:'#7a1a1a',
+    orientation:'portrait-primary',
+    icons:[{src:'data:image/svg+xml,'+encodeURIComponent(icon),sizes:'512x512',type:'image/svg+xml',purpose:'any'}]
+  };
+  const blob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+  const link=document.createElement('link');
+  link.rel='manifest'; link.href=URL.createObjectURL(blob);
+  document.head.appendChild(link);
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
+})();
+
+// ── Init ──────────────────────────────────────────────────
+firebase.auth().onAuthStateChanged(user => {
+  currentUser = user;
+  if (user) {
+    try {
+      view = 'home';
+      initListener();
+      render();
+    } catch(e) { showError(e); }
+  } else {
+    if (unsub) { unsub(); unsub = null; }
+    notes = []; view = 'home';
+    document.getElementById('app').innerHTML = renderLogin();
+  }
+});
+</script>
+</body>
+</html>
