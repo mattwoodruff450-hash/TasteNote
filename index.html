@@ -327,6 +327,18 @@ function goEdit(id){
   form={...emptyForm(),...n};editId=id;duplicate=null;view='form';render();
 }
 function openNote(id){selectedId=id;view='detail';render();}
+function searchCellarTracker(){
+  const n=notes.find(x=>x.id===selectedId);
+  if(!n) return;
+  const q=encodeURIComponent('site:cellartracker.com '+n.wineName+(n.vintage?' '+n.vintage:''));
+  window.open('https://www.google.com/search?q='+q,'_blank');
+}
+function searchWineSearcher(){
+  const n=notes.find(x=>x.id===selectedId);
+  if(!n) return;
+  const q=encodeURIComponent(n.wineName+(n.vintage?' '+n.vintage:''));
+  window.open('https://www.wine-searcher.com/find/'+q,'_blank');
+}
 function cancelForm(){form=emptyForm();editId=null;duplicate=null;view='list';render();}
 function onSearch(v){searchVal=v;render();}
 function setSort(s){sortBy=s;render();}
@@ -795,7 +807,8 @@ function renderDetail(){
     <div class="header-top">
       <button class="btn" onclick="goList()">← Back</button>
       <div style="display:flex;gap:8px">
-        <button class="btn" onclick="window.open('https://www.cellartracker.com/wines.asp?szSearch='+encodeURIComponent('${n.wineName.replace(/'/g,"\\'")}'),'_blank')">🔍 CellarTracker</button>
+        <button class="btn" onclick="searchCellarTracker()">🔍 CellarTracker</button>
+        <button class="btn" onclick="searchWineSearcher()">💰 Wine-Searcher</button>
         <button class="btn" onclick="goEdit('${n.id}')">✏️ Edit</button>
         <button class="btn-danger" onclick="doDelete('${n.id}')">Delete</button>
       </div>
