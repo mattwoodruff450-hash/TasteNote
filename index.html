@@ -807,8 +807,6 @@ function renderDetail(){
     <div class="header-top">
       <button class="btn" onclick="goList()">← Back</button>
       <div style="display:flex;gap:8px">
-        <button class="btn" onclick="searchCellarTracker()">🔍 CellarTracker</button>
-        <button class="btn" onclick="searchWineSearcher()">💰 Wine-Searcher</button>
         <button class="btn" onclick="goEdit('${n.id}')">✏️ Edit</button>
         <button class="btn-danger" onclick="doDelete('${n.id}')">Delete</button>
       </div>
@@ -834,6 +832,11 @@ function renderDetail(){
         ${n.style?`<div style="font-size:12px;color:#6b5040;margin-top:2px">${n.style}</div>`:''}
       </div>
     </div>`:''}
+
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="btn" style="flex:1" onclick="searchCellarTracker()">🔍 CellarTracker</button>
+      <button class="btn" style="flex:1" onclick="searchWineSearcher()">💰 Wine-Searcher</button>
+    </div>
 
     <div class="detail-section"><h4>Appearance</h4>
       ${detailRow('Clarity',n.clarity)}${detailRow('Intensity',n.intensity_app)}${detailRow('Colour',n.colour)}${detailRow('Viscosity',n.viscosity)}${detailRow('Effervescence',n.effervescence)}
