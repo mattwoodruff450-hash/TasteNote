@@ -875,6 +875,18 @@ let studyFlipped = false;
 let studyKnown = [];
 let studyUnknown = [];
 
+// Exam state
+let examLevel = 1;
+let examStarted = false;
+let examFinished = false;
+let examPart = 'mc';
+let examAnswers = [];
+let examWrittenAnswers = [];
+let examCurrentQ = 0;
+let examTimeLeft = 0;
+let examTimerInterval = null;
+let examReviewing = false;
+
 // ── Collection helpers ────────────────────────────────────
 function notesCol() {
   return db.collection('users').doc(currentUser.uid).collection('notes');
@@ -1006,6 +1018,434 @@ function markCard(result){
   render();
 }
 function restartStudy(){ studyIndex=0; studyFlipped=false; studyKnown=[]; studyUnknown=[]; render(); }
+
+// ── Exam Questions ────────────────────────────────────────
+const EXAM_CONFIG = {
+  1: { total:30, time:45*60, pass:70, label:'Level 1 Award in Wines' },
+  2: { total:50, time:60*60, pass:55, label:'Level 2 Award in Wines' },
+  3: { total:50, time:120*60, pass:55, label:'Level 3 Award in Wines' }
+};
+
+const EXAM_QUESTIONS = {
+1: [
+  { q:'What do grape skins provide to the winemaker?', o:['Sugar and water','Colour and tannin','Acid and alcohol','Flavour and sugar'], a:1 },
+  { q:'Which two products are produced during alcoholic fermentation?', o:['Sugar and carbon dioxide','Alcohol and carbon dioxide','Alcohol and tannin','Sugar and alcohol'], a:1 },
+  { q:'What are the two requirements for alcoholic fermentation to occur?', o:['Acid and water','Tannin and sugar','Sugar and yeast','Yeast and acid'], a:2 },
+  { q:'What happens to sugar levels in grapes as they ripen?', o:['Sugar levels decrease','Sugar levels stay the same','Sugar levels increase','Sugar converts to tannin'], a:2 },
+  { q:'Which of the following correctly describes the key stages of red wine production?', o:['Crushing, pressing, fermentation, maturation, bottling','Crushing, fermentation, draining, pressing, maturation, bottling','Pressing, fermentation, maturation, bottling','Crushing, pressing, draining, fermentation, bottling'], a:1 },
+  { q:'How does a cool climate affect grapes compared to a warm climate?', o:['Grapes have higher sugar and lower acidity','Grapes have lower sugar and higher acidity','Grapes have higher sugar and higher acidity','Grapes have lower sugar and lower acidity'], a:1 },
+  { q:'Which of the following grape varieties produces red wine?', o:['Chardonnay','Sauvignon Blanc','Riesling','Cabernet Sauvignon'], a:3 },
+  { q:'Chablis is:', o:['A dry white wine','A dry red wine','A sweet white wine','A sparkling wine'], a:0 },
+  { q:'Which of the following is a sparkling wine?', o:['Sauternes','Rioja','Champagne','Chianti'], a:2 },
+  { q:'What type of wine is Port?', o:['Sparkling','Fortified','Sweet still','Dry still'], a:1 },
+  { q:'Pinot Grigio is typically:', o:['A full-bodied red wine','A sweet white wine','A light-bodied dry white wine','A fortified wine'], a:2 },
+  { q:'Which grape variety is known for high tannin and blackcurrant flavours?', o:['Pinot Noir','Merlot','Riesling','Cabernet Sauvignon'], a:3 },
+  { q:'What style of wine is Beaujolais?', o:['Full-bodied red','Light-bodied red','Sweet white','Dry sparkling'], a:1 },
+  { q:'Riesling is particularly known for which characteristic?', o:['High tannin','High acidity','High alcohol','Full body'], a:1 },
+  { q:'Sancerre is made from which grape variety?', o:['Chardonnay','Riesling','Pinot Grigio','Sauvignon Blanc'], a:3 },
+  { q:'What type of wine is Sauternes?', o:['Dry white','Dry red','Sweet white','Sparkling'], a:2 },
+  { q:'Pinot Noir typically produces wines with:', o:['Very high tannin and full body','Light to medium body and silky tannins','High alcohol and tropical fruit','Low acidity and rich texture'], a:1 },
+  { q:'White Zinfandel is an example of which style of wine?', o:['Dry white','Rose','Sparkling','Fortified'], a:1 },
+  { q:'Which of the following is a fortified wine?', o:['Cava','Beaujolais','Prosecco','Sherry'], a:3 },
+  { q:'Syrah/Shiraz is typically associated with which aromas?', o:['Lemon and green apple','Peach and apricot','Black pepper and dark fruit','Rose petal and lychee'], a:2 },
+  { q:'Chardonnay grown in a warm climate is likely to be:', o:['Light-bodied with high acidity','Full-bodied with tropical fruit flavours','Low in alcohol with floral aromas','Off-dry with stone fruit flavours'], a:1 },
+  { q:'Merlot is typically described as:', o:['Very high tannin with blackcurrant fruit','Soft and round with plum and cherry flavours','Light with high acidity and red fruit','Aromatic with floral and spice notes'], a:1 },
+  { q:'Cava is made in which country?', o:['France','Italy','Spain','Germany'], a:2 },
+  { q:'Which grape variety is Burgundy white wine made from?', o:['Sauvignon Blanc','Riesling','Pinot Grigio','Chardonnay'], a:3 },
+  { q:'At what temperature should sparkling wine be served?', o:['Room temperature','Lightly chilled at 12-14 degrees C','Well chilled at 6-10 degrees C','Warm at 18-20 degrees C'], a:2 },
+  { q:'Which of the following describes the ideal conditions for storing wine?', o:['Warm, brightly lit and upright','Cool, dark and on its side','Cool, brightly lit and upright','Warm, dark and on its side'], a:1 },
+  { q:'Which food component makes wine taste more bitter and astringent?', o:['Sweetness','Salt','Umami','Acidity'], a:2 },
+  { q:'What does a vacuum system do for an open bottle of wine?', o:['Adds carbon dioxide to preserve bubbles','Removes air from the bottle to slow oxidation','Adds sulfur to prevent oxidation','Keeps the wine chilled'], a:1 },
+  { q:'At what temperature should a full-bodied red wine be served?', o:['Well chilled at 6-10 degrees C','Lightly chilled at 10-12 degrees C','Room temperature at 16-18 degrees C','Warm at 20-22 degrees C'], a:2 },
+  { q:'When opening a bottle of sparkling wine you should:', o:['Twist the cork sharply to release it quickly','Rotate the bottle slowly while holding the cork still','Shake the bottle to help release the cork','Remove the cage then pull the cork straight up'], a:1 },
+],
+2: [
+  { q:'Which component of a grape provides tannins to red wine?', o:['Pulp only','Skin and seeds','Stem only','Juice'], a:1 },
+  { q:'What effect does harvesting grapes early have on wine style?', o:['Higher alcohol and lower acidity','Lower sugar, higher acidity and less ripe fruit flavours','Higher sugar and lower acidity','No effect on wine style'], a:1 },
+  { q:'What is the effect of altitude on grape growing?', o:['Warmer temperatures and faster ripening','Cooler temperatures helping to preserve acidity','Higher rainfall and humid conditions','More intense sunlight reducing acidity'], a:1 },
+  { q:'What is noble rot and how does it affect grapes?', o:['A disease that destroys grapes completely','A fungus that dehydrates grapes, concentrating sugars and acids for sweet wine production','A treatment used to increase tannin in red grapes','A type of yeast used to start fermentation'], a:1 },
+  { q:'Which labelling term indicates wine from grapes harvested late to achieve extra ripeness?', o:['Vieilles vignes','Trocken','Late Harvest / Vendanges tardives','Premier Cru'], a:2 },
+  { q:'What does PDO (Protected Designation of Origin) guarantee?', o:['That the wine is organic','That the wine comes from a defined area and meets production rules','That the wine has a minimum alcohol level of 12%','That the wine was estate bottled'], a:1 },
+  { q:'What is the effect of a maritime climate compared to a continental climate?', o:['Hotter summers and colder winters','More moderate temperatures with less extreme seasonal variation','Drier conditions and lower rainfall','Stronger winds reducing frost risk'], a:1 },
+  { q:'What does old vine or vieilles vignes indicate on a label?', o:['The wine has been aged for a long time in barrel','The grapes came from older vines often producing lower yields and more concentrated fruit','The wine is from an old vintage','The wine uses a traditional winemaking method'], a:1 },
+  { q:'What is the purpose of malolactic conversion in winemaking?', o:['To increase alcohol levels','To convert sharp malic acid to softer lactic acid, reducing acidity','To add sweetness to the wine','To extract more colour from grape skins'], a:1 },
+  { q:'What effect does fermenting wine in new oak barrels have?', o:['No effect on flavour, only on colour','Adds vanilla, spice and toast flavours to the wine','Increases acidity in the final wine','Reduces alcohol content'], a:1 },
+  { q:'What is the key difference between fermenting in stainless steel versus oak?', o:['Stainless steel adds vanilla and spice; oak preserves fresh fruit','Oak adds vanilla and spice; stainless steel preserves fresh primary fruit aromas','Both produce identical wine styles','Stainless steel is only used for red wines'], a:1 },
+  { q:'What does ageing wine on lees add to its style?', o:['More colour and tannin','More freshness and primary fruit','Richer texture and autolytic notes such as bread and cream','Higher acidity'], a:2 },
+  { q:'How is sweetness achieved by stopping fermentation?', o:['By adding sugar after fermentation','By stopping fermentation before all sugar converts to alcohol','By adding grape juice to the finished wine','By using over-ripe grapes only'], a:1 },
+  { q:'What happens to the colour of a red wine as it ages in bottle?', o:['It becomes more deeply purple over time','It evolves from purple-red toward brick and tawny','The colour does not change with age','It becomes paler then darkens again'], a:1 },
+  { q:'What does blending achieve in winemaking?', o:['It always reduces quality','It can create consistency, complexity or a specific style','It is only used for cheap wines','It always increases alcohol'], a:1 },
+  { q:'What is the effect of a cool fermentation temperature on white wine?', o:['Produces more colour extraction','Preserves fresh, delicate fruit aromas','Increases tannin in the wine','Speeds up fermentation significantly'], a:1 },
+  { q:'In which area of Bordeaux does Merlot produce its most prestigious wines?', o:['Pauillac','Margaux','Pomerol and Saint-Emilion','Graves'], a:2 },
+  { q:'What style of Chardonnay is typically produced in Chablis?', o:['Full-bodied and heavily oaked','Rich and buttery with low acidity','Lean, mineral and unoaked or lightly oaked with high acidity','Sweet and aromatic'], a:2 },
+  { q:'What is the typical style of Cabernet Sauvignon from Napa Valley compared to Bordeaux?', o:['Lighter bodied with more herbal notes in Napa','Riper, fuller-bodied and more fruit-forward in Napa','Identical in style due to the same grape variety','Higher acidity and lower alcohol in Napa'], a:1 },
+  { q:'What climate does Pinot Noir require to produce quality wine?', o:['Hot and dry','Cool to moderate','Warm and humid','Very cold continental'], a:1 },
+  { q:'What style of Riesling is typically produced in the Mosel?', o:['Full-bodied and high in alcohol','Light, delicate and often off-dry with high acidity','Dry, oaked and powerful','Sweet and heavily botrytised'], a:1 },
+  { q:'What is the typical aroma profile of Sauvignon Blanc from Marlborough, New Zealand?', o:['Buttery, toasty and full-bodied','Intense passion fruit, gooseberry and cut grass','Earthy, mushroom and leather notes','Floral, peachy and low in acidity'], a:1 },
+  { q:'Pinot Gris from Alsace differs from Pinot Grigio from Italy because it is typically:', o:['Lighter and more neutral','Richer, more full-bodied and aromatic','Higher in acidity and lower in alcohol','Sweet and fortified'], a:1 },
+  { q:'Which of the following describes the typical style of Syrah from the Northern Rhone?', o:['Light, fruity and low in tannin','Elegant, peppery and savoury with firm tannin','Rich, jammy and sweet','Pale, delicate and floral'], a:1 },
+  { q:'What is Kabinett in the German wine classification?', o:['The highest quality level of Pradikatswein','The lightest style of Pradikatswein, made from just-ripe grapes','A term indicating oak ageing','A wine that has been chaptalised'], a:1 },
+  { q:'What does Trocken mean on a German wine label?', o:['Sweet','Old vine','Dry','Late harvest'], a:2 },
+  { q:'Chardonnay from the Yarra Valley, Australia is typically:', o:['Full, tropical and heavily oaked','Cool-climate, elegant and restrained with citrus and stone fruit','Sweet and off-dry','Sparkling only'], a:1 },
+  { q:'What is Grand Cru in Alsace?', o:['A blend of all four noble varieties','Wine from one of 51 classified superior vineyard sites','The sweetest style of Alsace wine','A sparkling wine from Alsace'], a:1 },
+  { q:'Pinot Noir from Central Otago is known for:', o:['Light, delicate wines with herbal notes','Rich, concentrated wines with ripe dark fruit and firm structure','Sweet, botrytised styles','Heavily oaked, full-bodied wines'], a:1 },
+  { q:'What is the typical style of Cabernet Sauvignon from Coonawarra, Australia?', o:['Light and fruity with low tannin','Mint, cassis and firm tannin from terra rossa soils','Tropical and jammy','Very pale and delicate'], a:1 },
+  { q:'What is the key difference between the Traditional Method and the Tank Method?', o:['Traditional Method ferments base wine in tank; Tank Method ferments in bottle','Traditional Method has second fermentation in bottle; Tank Method uses a pressurised tank','Traditional Method uses only Chardonnay; Tank Method uses any variety','There is no difference in the final wine style'], a:1 },
+  { q:'What does Brut indicate on a sparkling wine label?', o:['The wine is very sweet','The wine is dry with low residual sugar','The wine has undergone extended ageing','The wine is made by the Traditional Method'], a:1 },
+  { q:'How is Port made sweet?', o:['By adding sugar after fermentation','By adding grape spirit during fermentation to stop it before all sugar converts to alcohol','By using sun-dried grapes only','By chilling the wine to stop fermentation'], a:1 },
+  { q:'What is Fino Sherry and how is it aged?', o:['A sweet dark Sherry aged oxidatively without yeast','A pale dry Sherry aged under a layer of flor yeast','A medium Sherry blended with sweetened wine','A fortified wine from Portugal'], a:1 },
+  { q:'What does lees ageing in Champagne production add to the wine?', o:['Ageing in large oak casks adds vanilla flavour','Contact with dead yeast cells adds bread, biscuit and creamy texture','Filtering removes sediment','Adding dosage adjusts sweetness'], a:1 },
+  { q:'Which food and wine pairing principle states the weight of the wine should match the dish?', o:['Acid matching','Weight matching','Regional pairing','Contrast pairing'], a:1 },
+  { q:'Why does a tannic red wine pair well with a fatty steak?', o:['Tannin adds sweetness to balance the fat','Tannin binds to protein and fat, softening its astringency','The fat reduces acidity in the wine','Red wine always pairs well with meat regardless of tannin'], a:1 },
+  { q:'What is the recommended storage temperature for wine intended for long-term ageing?', o:['18-20 degrees C','Around 12-14 degrees C','Below 5 degrees C','0 degrees C'], a:1 },
+  { q:'How does salt in food affect the perception of wine?', o:['Salt makes wine taste sweeter','Salt reduces the perception of bitterness and can increase fruitiness','Salt increases the perception of acidity in wine','Salt has no effect on wine taste'], a:1 },
+  { q:'What is Albarino from Rias Baixas known for?', o:['High tannin and full body','Aromatic dry whites with citrus, peach and saline minerality','Rich, oaked and full-bodied whites','Sweet botrytised dessert wines'], a:1 },
+  { q:'What is the typical style of Malbec from Mendoza, Argentina?', o:['Light, herbal and low in alcohol','Full-bodied with dark plum, blackberry and violet notes','Crisp, high acid and unoaked','Sweet and fortified'], a:1 },
+  { q:'Sangiovese is the main grape of which wine?', o:['Rioja','Barolo','Chianti','Cotes du Rhone'], a:2 },
+  { q:'Tempranillo is the main grape variety used in:', o:['Chablis','Rioja','Champagne','Port'], a:1 },
+  { q:'What is the typical style of Grenache from the Southern Rhone?', o:['High tannin, very dark and austere','Ripe red fruit, high alcohol and soft tannins','Light, crisp and mineral','Sweet and fortified'], a:1 },
+  { q:'Gruner Veltliner from Austria is typically known for:', o:['High tannin and dark fruit','White pepper, citrus and high acidity','Sweet and aromatic with lychee notes','Full-bodied and heavily oaked'], a:1 },
+  { q:'What does Spatlese mean in the German Pradikat classification?', o:['Wine made from individually selected botrytised berries','Wine from late-harvested grapes, riper than Kabinett, often off-dry','Germany\'s driest style of wine','A type of sparkling wine from the Mosel'], a:1 },
+  { q:'What labelling term indicates Premier Cru quality in Burgundy?', o:['Grand Cru','Premier Cru','Village','Regional'], a:1 },
+  { q:'Sauvignon Blanc from Sancerre differs from Marlborough Sauvignon Blanc because:', o:['Sancerre is made from a different grape variety','Sancerre tends to be more mineral and restrained; Marlborough more intensely aromatic','Sancerre is always sweet while Marlborough is dry','There is no stylistic difference'], a:1 },
+  { q:'What is the correct way to check a wine before serving it to a guest?', o:['Taste the entire glass','Pour a small amount and check the appearance and nose for faults','Check the label only','Smell the cork only'], a:1 },
+  { q:'What is Pinot Noir from Pommard, Burgundy typically known for?', o:['Light, delicate and highly perfumed style','Firmer, more structured and full-bodied style compared to other Cote de Beaune reds','Sweet, rich and heavily oaked','Very pale in colour with high acidity'], a:1 },
+],
+3: [
+  { q:'What distinguishes a Burgundy Grand Cru from a Premier Cru?', o:['Grand Cru wines must be aged for longer before release','Grand Cru comes from the finest classified vineyard sites and carries only the vineyard name','Grand Cru must be made from Pinot Noir only','Grand Cru wines have higher minimum alcohol levels'], a:1 },
+  { q:'What is the role of Kimmeridgian limestone soils in Chablis?', o:['They retain heat well, aiding ripening in a cool climate','They contain ancient marine fossils and contribute to the wines\' flinty minerality and acidity','They drain poorly causing vine stress','They are very fertile, encouraging high yields'], a:1 },
+  { q:'When would a winemaker choose to prevent malolactic fermentation?', o:['Always in red wines to preserve colour','In wines where high acidity and freshness are desired, such as Riesling and Vinho Verde','In all sweet wines regardless of style','When making wines for immediate consumption only'], a:1 },
+  { q:'What characterises the terroir of Chateauneuf-du-Pape compared to the Northern Rhone?', o:['Chateauneuf has cooler temperatures and granite soils; Northern Rhone is warmer with clay','Chateauneuf has a warmer Mediterranean climate, mixed soils and permits blending; Northern Rhone is cooler with granite and focuses on single varieties','Both regions have identical terroir but use different grape varieties','Chateauneuf has higher altitude vineyards producing lighter-bodied wines'], a:1 },
+  { q:'What is the solera system used in Sherry production?', o:['A system of heating wine to stabilise it before bottling','A fractional blending system of casks where older wine is refreshed with younger wine, ensuring consistency and complexity','A method of fermenting Sherry in large concrete vats','A process of filtering Sherry through layers of clay'], a:1 },
+  { q:'What distinguishes Vintage Port from LBV Port?', o:['LBV is from a single year and develops in bottle for decades; Vintage is blended from multiple years','Vintage Port is declared only in exceptional years, bottled after 2 years and aged for decades in bottle; LBV is from a single year aged 4-6 years in barrel then bottled ready to drink','There is no difference between the two styles','Vintage Port is always sweeter than LBV'], a:1 },
+  { q:'What is autolysis in Champagne production and what does it contribute?', o:['The removal of sediment by riddling; contributes clarity and freshness','The breakdown of dead yeast cells during lees ageing; contributes bread, biscuit and creamy texture','The addition of dosage; contributes sweetness and balance','The blending of different years; contributes complexity and consistency'], a:1 },
+  { q:'How does the Mosel differ from the Rheingau and how does this affect Riesling style?', o:['Mosel is warmer; produces fuller, drier Riesling than Rheingau','Mosel is cooler on steep slate slopes producing lighter, more delicate and often off-dry Riesling; Rheingau is warmer on loam producing fuller, more powerful styles','Both regions have identical climates and produce identical styles','Mosel is higher altitude and always produces more powerful wines'], a:1 },
+  { q:'What is the key difference between carbonic maceration and traditional red winemaking?', o:['Traditional winemaking uses whole bunches; carbonic maceration crushes grapes first','Carbonic maceration ferments whole uncrushed grapes in CO2, producing soft fruity low-tannin wines; traditional winemaking crushes grapes and ferments with skin contact','There is no difference in the resulting wine style','Carbonic maceration always produces higher alcohol wines'], a:1 },
+  { q:'What is typicity in wine evaluation and why is it assessed?', o:['The total acidity of the wine; assessed to determine freshness','How well a wine expresses the expected characteristics of its variety, region and vintage; assesses authenticity of expression','The colour intensity of the wine; assessed to determine concentration','The length of the finish; assessed to determine quality level'], a:1 },
+  { q:'What distinguishes Barolo from Barbaresco, both made from Nebbiolo?', o:['Barolo uses Barbera; Barbaresco uses Nebbiolo','Barolo requires longer minimum ageing and is generally more powerful and tannic; Barbaresco has shorter ageing requirements and is considered more elegant','Barbaresco is a sweet wine; Barolo is dry','They are identical wines from neighbouring villages'], a:1 },
+  { q:'What is the Traditional Method of sparkling wine production?', o:['Fermenting base wine in large tanks with CO2 injected before bottling','A second fermentation occurs in the individual bottle; wine ages on lees, is riddled, disgorged and dosage added','Adding carbon dioxide directly to still wine before sealing','Fermenting with residual sugar sealed in bottle to trap bubbles from primary fermentation'], a:1 },
+  { q:'What role does botrytis cinerea play in the production of Sauternes?', o:['It is a harmful fungus that must be eliminated','As noble rot it dehydrates grapes on the vine, concentrating sugars, acids and glycerol to produce intensely sweet wines','It is a yeast used to start fermentation in Sauternes','It adds the distinctive golden colour to Sauternes wines'], a:1 },
+  { q:'What is the estufagem process used in Madeira production?', o:['Traditional ageing of wine in casks in warm lofts','A commercial heating process where wine is heated to around 45-50 degrees C for at least 90 days, deliberately oxidising and caramelising the wine','A method of fortification using pot-still brandy','A type of fractional blending similar to the Sherry solera'], a:1 },
+  { q:'How does new oak affect wine differently from neutral (old) oak?', o:['Old oak imparts more flavour than new oak','New oak imparts more flavour including vanilla, spice and toast; neutral oak allows oxygen exchange without adding wood flavour','There is no difference between new and old oak on flavour','New oak reduces tannin; old oak increases it'], a:1 },
+  { q:'What is the significance of the 1855 Bordeaux classification?', o:['It classifies all Bordeaux wines including Right Bank estates','It classified Left Bank chateaux into five growth levels based on reputation and price; it remains largely unchanged today','It was replaced by a new classification system in 1955','It applies only to sweet wines from Sauternes and Barsac'], a:1 },
+  { q:'What is TCA and what effect does it have on wine?', o:['A natural grape compound that adds complexity and earthy notes','Trichloroanisole, the main compound causing cork taint, producing musty cardboard aromas that mask fruit','A preservative used instead of sulfur dioxide in natural wines','A yeast strain that produces fruity aromas in fermentation'], a:1 },
+  { q:'What is volatile acidity and when does it become a fault?', o:['The total acidity of the wine; it is always a fault','Acidity from acetic acid giving vinegar or nail varnish aromas; at low levels it may add complexity but at high levels it is a fault','The acidity that evaporates when wine is decanted; always desirable','Acidity from malic acid; reduced by malolactic fermentation'], a:1 },
+  { q:'What distinguishes Grand Cru villages from Premier Cru villages in Champagne?', o:['Grand Cru villages scored 100% on the historical echelle des crus; Premier Cru villages scored 90-99%','There is no distinction between Premier Cru and Grand Cru in Champagne','Premier Cru must be vintage Champagne; Grand Cru can be NV','Grand Cru uses only Chardonnay; Premier Cru blends all three varieties'], a:0 },
+  { q:'What is the role of flor yeast in Fino Sherry production?', o:['It adds sweetness by stopping fermentation early','It forms a protective layer on the wine preventing oxidation and contributing saline and nutty character','It converts grape sugar to alcohol in primary fermentation','It produces the distinctive dark colour of Fino Sherry'], a:1 },
+  { q:'What effect does high altitude have on wine style in regions like Mendoza and Etna?', o:['Higher altitude means warmer temperatures and riper grapes','Higher altitude means cooler temperatures, preserving acidity and producing more elegant wines with longer growing seasons','Altitude has no measurable effect on wine style','Higher altitude increases humidity and fungal disease risk'], a:1 },
+  { q:'What is Brettanomyces and when does it become a wine fault?', o:['A beneficial fungus that always improves complexity','A wild yeast that at low levels may add barnyard or leather complexity but at high levels produces horse sweat and sticking plaster off-aromas','A type of oak used in premium barrel production','A grape disease that reduces yield and concentration'], a:1 },
+  { q:'What distinguishes Hermitage from Crozes-Hermitage in the Northern Rhone?', o:['Hermitage is on flat alluvial soils; Crozes-Hermitage on steep granite slopes','Hermitage is on a single granite hill producing profound, concentrated Syrah; Crozes-Hermitage surrounds it on more varied soils producing wines at an accessible level','Both appellations produce identical wines from the same slopes','Crozes-Hermitage produces only white wine; Hermitage only red'], a:1 },
+  { q:'What is phenolic ripeness and why does it matter in red winemaking?', o:['The sugar content at harvest; higher is always better','The full maturation of grape skin tannins so they feel ripe and silky rather than green and harsh; it does not always coincide with sugar ripeness','The total acid content of the grape; lower is always better','The colour intensity of the grape skin; more colour always means better quality'], a:1 },
+  { q:'What is en primeur and which region is most associated with it?', o:['Buying wine at the winery after bottling; most associated with Burgundy','Buying wine futures while still in barrel before bottling; most associated with Bordeaux','Purchasing wine at auction; most associated with Champagne','Buying wine through a negociant; most associated with the Rhone'], a:1 },
+  { q:'What characterises the production of Amarone della Valpolicella?', o:['Grapes are harvested early and fermented quickly to preserve freshness','Grapes (mainly Corvina) are dried for several months using the appassimento method then fermented to dryness, producing a powerful concentrated wine','It is a sweet wine made from botrytis-affected grapes','It is made using carbonic maceration like Beaujolais'], a:1 },
+  { q:'What is Gruner Veltliner and what makes it distinctive?', o:['A high-tannin Austrian red grape with dark fruit','Austria\'s most important white grape; producing wines with white pepper, citrus, high acidity and good ageing potential','A sweet aromatic variety with low alcohol','A neutral and light variety with little aromatic character'], a:1 },
+  { q:'What is the Super Tuscan movement?', o:['A classification of Tuscany\'s finest Sangiovese wines','Wines made outside traditional DOC rules in Tuscany, often using international varieties, classified as IGT despite commanding high prices','A style of light, early-drinking Chianti','A new DOCG classification system created in 2000'], a:1 },
+  { q:'What is the Wachau classification for Gruner Veltliner and Riesling?', o:['Grand Cru, Premier Cru and Village levels matching Burgundy','Steinfeder (lightest), Federspiel (medium) and Smaragd (richest, most concentrated)','Kabinett, Spatlese and Auslese levels','There is no classification system in the Wachau'], a:1 },
+  { q:'What is the difference between reduction and oxidation as wine faults?', o:['They are the same fault with different names','Reduction is caused by lack of oxygen producing sulfur compound aromas; oxidation is caused by excess oxygen producing flat, stale and nutty aromas','Oxidation produces sulfur aromas; reduction produces vinegar notes','Both are caused by excess oxygen exposure during winemaking'], a:1 },
+  { q:'What is Tokaji Aszu and what makes it distinctive?', o:['A dry Hungarian Furmint table wine','A Hungarian sweet wine made from individually selected botrytis-affected berries added to a base wine, measured in puttonyos','A sparkling wine from Hungary made by the Traditional Method','A fortified wine similar in style to Port from the Tokaj region'], a:1 },
+  { q:'What is the key role of the negociant in Burgundy versus the domaine?', o:['They are the same thing described differently in different villages','A domaine grows its own grapes and makes its own wine; a negociant buys grapes, must or wine from growers, blends and sells under their own label','A negociant only sells wine; a domaine only grows grapes','Negociants are only permitted to operate in Bordeaux'], a:1 },
+  { q:'What characterises Assyrtiko from Santorini?', o:['Low acidity, full body and dark fruit flavours','Extraordinary mineral intensity, high acidity and citrus fruit from volcanic soils; vines trained in basket form to survive harsh conditions','Sweet, botrytised and very rich in style','Light and delicate with predominantly floral aromas'], a:1 },
+  { q:'What is diurnal temperature variation and why is it important for viticulture?', o:['The difference between vintage years; important for quality assessment','The difference between day and night temperatures; large variation allows full ripening by day while preserving natural acidity at night','The variation in temperature during fermentation; important for aromatic preservation','The range of temperatures across different barrel sizes'], a:1 },
+  { q:'What distinguishes Fino from Manzanilla Sherry?', o:['They are identical wines from the same town','Both are biologically aged under flor but Manzanilla is only made in Sanlucar de Barrameda where Atlantic humidity encourages a thicker flor giving a distinctive saline character','Manzanilla is sweeter than Fino','Fino is aged oxidatively; Manzanilla biologically'], a:1 },
+  { q:'What effect does whole-cluster fermentation have on red wine?', o:['Crushing all grapes together with skins; produces more colour extraction','Fermenting with grape stalks intact; can add savouriness, structure and herbal character to the wine','Always reduces quality by adding excessive bitterness','A gentle pressing technique used only for white wine production'], a:1 },
+  { q:'How is climate change affecting traditional European wine regions?', o:['It has no measurable effect on established wine regions','Rising temperatures are advancing harvest dates, increasing alcohol, reducing acidity and in some regions making it harder to grow traditionally suited varieties','It is only affecting New World wine regions','It improves quality consistently across all wine regions'], a:1 },
+  { q:'What is the difference between Tawny and Ruby Port styles?', o:['Tawny is always from a single year; Ruby is always blended from multiple years','Ruby Port is aged in large vessels preserving fruit and colour; Tawny Port is aged in small barrels allowing oxidation, developing nutty and dried fruit flavours','Both styles are aged identically; the difference is only in sweetness level','Ruby Port is always vintage quality; Tawny is always NV'], a:1 },
+  { q:'Why do old bush vines in Barossa and Priorat produce distinctive wines?', o:['Old vines produce higher yields and therefore more concentrated wines','Old vines have deeper root systems, produce lower yields naturally and often give more concentrated and complex wines','Vine age has no proven effect on wine quality or style','Old vines are mainly significant for marketing rather than genuine quality'], a:1 },
+  { q:'What is Vin Jaune from the Jura and how is it made?', o:['A sweet wine from botrytis-affected Savagnin grapes in Arbois','A wine aged under a veil of yeast (voile) in old barrels for a minimum of 6 years 3 months, developing oxidative, nutty and distinctive curry-like aromas','A sparkling wine made by the ancestral method in the Jura','An orange wine made with extended skin contact from Poulsard'], a:1 },
+  { q:'What does terroir encompass in wine production?', o:['Only the soil type of a specific vineyard site','The complete natural environment including soil, climate, aspect, altitude and topography, giving a wine its unique sense of place','The winemaking techniques and choices made by the producer','The grape variety or varieties planted in the vineyard'], a:1 },
+  { q:'What was the significance of the 1976 Judgment of Paris?', o:['French wines won every category convincingly, confirming Old World supremacy','California wines beat French wines in a blind tasting by an international panel, demonstrating that New World wines could rival the finest Old World wines','The tasting compared only sparkling wines from France and the USA','It established the current Bordeaux classification system'], a:1 },
+  { q:'What is Nerello Mascalese and why is it gaining international attention?', o:['A Piedmontese variety used in Barolo production','A Sicilian grape grown on Mount Etna\'s volcanic slopes producing elegant, high-acid, complex wines sometimes compared to Burgundy\'s Pinot Noir','A Portuguese variety used in Port production','A Spanish grape used primarily in Priorat blends'], a:1 },
+  { q:'What is the petillant naturel (ancestral method) of sparkling wine?', o:['A method identical to the Traditional Method used in Champagne','The wine is bottled before fermentation is complete, trapping CO2 naturally; the wine is unfiltered, hazy and low in added sulfur','Adding carbon dioxide directly to still wine before sealing','A method using large tanks with extended lees ageing then bottling under pressure'], a:1 },
+  { q:'What is the difference between macroclimate, mesoclimate and microclimate?', o:['They all refer to the same thing at different historical periods','Macroclimate is the regional climate; mesoclimate is the local site climate; microclimate is the immediate vine environment affected by canopy, soil and aspect','Macroclimate refers to soil type; mesoclimate to rainfall; microclimate to temperature','These terms only apply to New World wine regions and have no relevance in Europe'], a:1 },
+  { q:'What was the impact of phylloxera on the wine world?', o:['It is a beneficial insect that improves grape quality through vine stress','A vine louse that devastated European vineyards from the 1860s; the solution was grafting vinifera vines onto resistant American rootstocks','It is a fungal disease controlled by the Bordeaux mixture','It only affected New World vineyards and had no impact on Europe'], a:1 },
+  { q:'What is Sagrantino di Montefalco and what makes it distinctive?', o:['A light, delicate Umbrian white wine for early drinking','A powerful DOCG red from Umbria made from Sagrantino, which has the highest tannin of any major Italian variety and requires years of ageing','A sweet sparkling wine from central Italy','A blend of international varieties grown in Tuscany'], a:1 },
+  { q:'How does English sparkling wine compare to Champagne in production?', o:['English sparkling wine uses the Tank Method; Champagne uses the Traditional Method','Both use the Traditional Method with similar grape varieties on chalk soils; English wines benefit from a more northerly climate producing very high natural acidity','English sparkling wine is made from entirely different grape varieties to Champagne','English sparkling wine is always of lower quality than Champagne due to the cooler climate'], a:1 },
+  { q:'What distinguishes a balanced wine from a merely concentrated one?', o:['They are the same thing; concentration always equals balance','A balanced wine has all components (fruit, acid, tannin, alcohol) in harmony; a merely concentrated wine may have intense flavours but lack harmony between components','Balance refers only to the relationship between sweetness and acidity','Concentration is always a more important quality indicator than overall balance'], a:1 },
+  { q:'What is qvevri winemaking and where did it originate?', o:['A modern stainless steel fermentation technique developed in Australia','An ancient Georgian method of fermenting and ageing wine in clay vessels buried in the earth; one of the world\'s oldest winemaking traditions dating back 8,000 years','A French oak barrel system developed in the 18th century','A method of fermenting in limestone caves, traditional in the Loire Valley'], a:1 },
+]
+};
+
+const EXAM_WRITTEN = [
+  {
+    q: 'Champagne production uses the Traditional Method. Explain why a producer of Traditional Method sparkling wines requires grapes with relatively low sugar levels, and name and describe the process by which these wines acquire flavours of bread and biscuit.',
+    marks: 5,
+    scheme: 'Low sugar (2 marks): Low sugar means lower base wine alcohol; leaving room for the sugar added in the liqueur de tirage to produce a second fermentation in bottle without creating excessively high alcohol (around 12% is typical). If sugar is too high the resulting wine would be unbalanced and too alcoholic. Autolysis (3 marks): Autolysis is the breakdown of dead yeast cells (lees) during the extended period of ageing in bottle after the second fermentation. The dead yeast cells release compounds including mannoproteins and fatty acids which interact with the wine. This produces complex bread, biscuit, brioche, toast and creamy textures in the finished wine. Longer lees ageing produces more pronounced autolytic character.'
+  },
+  {
+    q: 'Pinot Noir is best grown in cool and moderate climates. Explain why this is, and for EACH of the following regions, identify TWO natural factors and explain how they moderate the climate to allow successful Pinot Noir production: (a) Willamette Valley, Oregon and (b) Central Otago, New Zealand.',
+    marks: 14,
+    scheme: 'Why cool/moderate (2 marks): Pinot Noir is thin-skinned and sensitive to heat. In hot climates it over-ripens quickly, losing its delicate aromas and producing jammy, overblown wines. Cool conditions allow slow, even ripening, preserving its characteristic red fruit, floral notes, silky tannins and bright acidity. Willamette Valley (6 marks, 3 per factor): (1) Pacific Ocean influence: maritime air from the Pacific moderates temperatures, preventing extreme heat and cold. The Coast Range partially shields the valley but allows cool maritime air to temper summer heat. (2) Latitude: at around 45 degrees North, similar to Burgundy, providing adequate warmth for ripening without excessive heat accumulation. Other valid factors: rain shadow from Coast Range, elevation of vineyard sites. Central Otago (6 marks, 3 per factor): (1) Altitude: vineyards sit at 200-450m above sea level. Higher altitude means cooler temperatures despite the region\'s inland continental location and strong sunshine. (2) Diurnal variation: very large day-to-night temperature differences. Warm sunny days allow good sugar and flavour development; cold nights preserve natural acidity and extend the growing season. Other valid factors: Southern latitude, mountain ranges moderating temperature.'
+  },
+  {
+    q: 'Describe the key stylistic and practical reasons why a winemaker in the Southern Rhone might choose to blend grape varieties rather than produce a single-variety wine.',
+    marks: 6,
+    scheme: 'Stylistic reasons (3 marks): Blending allows the winemaker to add components that a single variety cannot provide alone. Grenache provides red fruit, alcohol and warmth but can lack colour and structure. Syrah adds deep colour, tannin, spice and a peppery note. Mourvedre adds body, meaty depth, dark fruit and structure. Together the blend is more complex, layered and complete than any single variety could achieve alone. The winemaker can also adjust the blend each year to maintain a consistent house style despite vintage variation. Practical reasons (3 marks): Different varieties ripen at different times, spreading workload in the winery and reducing the risk of losing the entire harvest to a single weather event. If one variety performs poorly in a given year (due to disease, frost, or hail) a larger proportion of the other varieties can compensate. Old mixed plantings (field blends) are harvested together, which is traditional in many Southern Rhone estates and reduces the complexity of managing many separate vinification tanks.'
+  },
+  {
+    q: 'Vintage Port is aged in bottle and will need decanting before serving. Describe fully the process of opening and decanting a mature Vintage Port.',
+    marks: 5,
+    scheme: 'Storage and preparation (1 mark): Stand the bottle upright for 24-48 hours before service to allow sediment to settle to the bottom. Opening (1 mark): Remove the foil carefully. The cork of a very old Port may be fragile; use Port tongs heated red hot then applied around the neck to crack it cleanly if necessary. Otherwise use a waiter\'s friend carefully, pulling slowly. Decanting (2 marks): Pour the Port slowly and steadily into a clean decanter, holding a light source (candle or torch) beneath the neck of the bottle. Watch the wine passing through the neck carefully. Stop pouring as soon as sediment appears in the neck of the bottle. Do not shake or disturb the bottle during pouring. Serving (1 mark): Serve the decanted Port immediately, as very old Vintages can fade quickly once exposed to oxygen. The sediment-containing remainder in the bottle should be discarded.'
+  }
+];
+
+// ── Exam actions ──────────────────────────────────────────
+function goExam(){
+  if(examTimerInterval){clearInterval(examTimerInterval);examTimerInterval=null;}
+  examStarted=false; examFinished=false; examReviewing=false;
+  examPart='mc'; examAnswers=[]; examWrittenAnswers=[];
+  examCurrentQ=0; view='exam'; render();
+}
+function startExam(lvl){
+  examLevel=lvl;
+  examStarted=true; examFinished=false; examReviewing=false;
+  examPart='mc'; examAnswers=new Array(EXAM_QUESTIONS[lvl].length).fill(-1);
+  examWrittenAnswers=new Array(EXAM_WRITTEN.length).fill('');
+  examCurrentQ=0;
+  examTimeLeft=EXAM_CONFIG[lvl].time;
+  if(examTimerInterval) clearInterval(examTimerInterval);
+  examTimerInterval=setInterval(()=>{
+    examTimeLeft--;
+    const el=document.getElementById('exam-timer');
+    if(el) el.textContent=fmtTime(examTimeLeft);
+    if(examTimeLeft<=0){clearInterval(examTimerInterval);finishExamMC();}
+  },1000);
+  render();
+}
+function fmtTime(s){
+  const m=Math.floor(s/60),sec=s%60;
+  return m+':'+(sec<10?'0':'')+sec;
+}
+function selectAnswer(idx){
+  examAnswers[examCurrentQ]=idx;
+  const opts=document.querySelectorAll('.exam-opt');
+  opts.forEach((o,i)=>{
+    o.style.background=i===idx?'#e8d0c0':'#f5efe6';
+    o.style.borderColor=i===idx?'#9b2a2a':'#c9b09a';
+    o.style.color=i===idx?'#7a1a1a':'#3a2218';
+  });
+}
+function examNav(dir){
+  const qs=EXAM_QUESTIONS[examLevel];
+  examCurrentQ=Math.max(0,Math.min(qs.length-1,examCurrentQ+dir));
+  render();
+}
+function finishExamMC(){
+  if(examTimerInterval){clearInterval(examTimerInterval);examTimerInterval=null;}
+  if(examLevel===3){
+    examPart='written'; examCurrentQ=0; render();
+  } else {
+    examFinished=true; render();
+  }
+}
+function saveWrittenAnswer(){
+  const ta=document.getElementById('written-answer');
+  if(ta) examWrittenAnswers[examCurrentQ]=ta.value;
+}
+function examWrittenNav(dir){
+  saveWrittenAnswer();
+  const next=examCurrentQ+dir;
+  if(next>=EXAM_WRITTEN.length){
+    examFinished=true; examPart='results'; render();
+  } else {
+    examCurrentQ=Math.max(0,next); render();
+  }
+}
+function showReview(){examReviewing=true;examCurrentQ=0;render();}
+function examScore(){
+  const qs=EXAM_QUESTIONS[examLevel];
+  return examAnswers.filter((a,i)=>a===qs[i].a).length;
+}
+function examPct(){return Math.round((examScore()/EXAM_QUESTIONS[examLevel].length)*100);}
+function examPassed(){return examPct()>=EXAM_CONFIG[examLevel].pass;}
+function restartExam(){
+  if(examTimerInterval){clearInterval(examTimerInterval);examTimerInterval=null;}
+  examStarted=false; examFinished=false; examReviewing=false;
+  examPart='mc'; examAnswers=[]; examWrittenAnswers=[];
+  examCurrentQ=0; render();
+}
+
+// ── renderExam ────────────────────────────────────────────
+function renderExam(){
+  const cfg=EXAM_CONFIG[examLevel]||EXAM_CONFIG[1];
+
+  // Level selector / lobby
+  if(!examStarted){
+    const lvlBtns=[1,2,3].map(l=>{
+      const c=EXAM_CONFIG[l];
+      const cols={1:{bg:'#7a1a1a',light:'#f5ede0',border:'#9b2a2a'},2:{bg:'#4a3060',light:'#f0ebf8',border:'#6a4a90'},3:{bg:'#1a4a2a',light:'#e8f5ec',border:'#2a7a3a'}};
+      const col=cols[l];
+      const sel=examLevel===l;
+      return `<div onclick="examLevel=${l};render()" style="background:${sel?col.bg:'#ede3d6'};border:1px solid ${sel?col.border:'#d9c8b4'};border-radius:8px;padding:16px 18px;cursor:pointer;margin-bottom:10px;">
+        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:${sel?col.light:'#3a2218'};font-weight:400">Level ${l} Practice Exam</div>
+        <div style="font-size:11px;color:${sel?'rgba(255,255,255,0.7)':'#8b6848'};margin-top:3px">${c.label} &nbsp;|&nbsp; ${c.total} questions &nbsp;|&nbsp; ${Math.round(c.time/60)} minutes &nbsp;|&nbsp; Pass: ${c.pass}%</div>
+        ${l===3?`<div style="font-size:10px;color:${sel?'rgba(255,255,255,0.6)':'#a08060'};margin-top:2px">50 multiple choice + 4 short written answer questions</div>`:''}
+      </div>`;
+    }).join('');
+
+    return `<div class="header">
+      <div class="header-top">
+        <button class="btn" onclick="goHome()">&larr; Home</button>
+        <div class="app-title">&#128221; Practice Exams</div>
+        <div style="width:80px"></div>
+      </div>
+    </div>
+    <div class="content">
+      <div style="font-size:10px;color:#a08060;letter-spacing:0.2em;text-transform:uppercase;text-align:center;margin-bottom:20px;font-family:'Cormorant Garamond',Georgia,serif;font-weight:600">Select your level</div>
+      ${lvlBtns}
+      <div style="background:#ede3d6;border:1px solid #d9c8b4;border-radius:8px;padding:16px 18px;margin-top:6px">
+        <div style="font-size:12px;font-weight:600;color:#3a2218;margin-bottom:6px">Before you start</div>
+        <div style="font-size:12px;color:#8b6848;line-height:1.7">
+          Treat this like the real exam. No notes, no searching. Time yourself strictly.
+          Level 1 pass mark is <strong>70%</strong>. Levels 2 and 3 require <strong>55%</strong>.
+          For Level 3, the multiple choice and short written sections are separate.
+        </div>
+      </div>
+      <button class="btn-primary" style="width:100%;padding:14px;margin-top:16px;font-size:16px" onclick="startExam(${examLevel})">Start Exam &rarr;</button>
+    </div>`;
+  }
+
+  // Results screen
+  if(examFinished){
+    const score=examScore();
+    const pct=examPct();
+    const passed=examPassed();
+    const qs=EXAM_QUESTIONS[examLevel];
+
+    if(examReviewing){
+      const q=qs[examCurrentQ];
+      const userAns=examAnswers[examCurrentQ];
+      const correct=userAns===q.a;
+      return `<div class="header">
+        <div class="header-top">
+          <button class="btn" onclick="examReviewing=false;render()">&larr; Results</button>
+          <div style="font-size:13px;color:#8b6848">${examCurrentQ+1} of ${qs.length}</div>
+          <div style="width:80px"></div>
+        </div>
+      </div>
+      <div class="content">
+        <div style="background:#ede3d6;border:1px solid #d9c8b4;border-radius:8px;padding:20px;margin-bottom:14px">
+          <div style="font-size:14px;color:#3a2218;line-height:1.6;margin-bottom:14px">${q.q}</div>
+          ${q.o.map((opt,i)=>{
+            let bg='#f5efe6',bc='#c9b09a',col='#3a2218',suffix='';
+            if(i===q.a){bg='#e8f5ec';bc='#2a7a3a';col='#1a4a2a';suffix=' &#10003;';}
+            else if(i===userAns&&!correct){bg='#f5e8e4';bc='#c9a0a0';col='#8b2a2a';suffix=' &#10007;';}
+            return `<div style="background:${bg};border:1px solid ${bc};border-radius:6px;padding:10px 14px;margin-bottom:8px;font-size:13px;color:${col}">${opt}${suffix}</div>`;
+          }).join('')}
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" style="flex:1" onclick="examCurrentQ=Math.max(0,examCurrentQ-1);render()" ${examCurrentQ===0?'disabled':''}&larr; Prev</button>
+          <button class="btn" style="flex:1" onclick="examCurrentQ=Math.min(${qs.length-1},examCurrentQ+1);render()" ${examCurrentQ===qs.length-1?'disabled':''}Next &rarr;</button>
+        </div>
+      </div>`;
+    }
+
+    return `<div class="header">
+      <div class="header-top">
+        <button class="btn" onclick="goExam()">New Exam</button>
+        <div class="app-title">&#128221; Results</div>
+        <div style="width:80px"></div>
+      </div>
+    </div>
+    <div class="content">
+      <div style="text-align:center;padding:24px 0 20px">
+        <div style="font-size:48px;margin-bottom:10px">${passed?'&#127881;':'&#128549;'}</div>
+        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:52px;color:${passed?'#1a4a2a':'#8b2a2a'};font-weight:300;line-height:1">${pct}%</div>
+        <div style="font-size:20px;color:${passed?'#2a7a3a':'#9b2a2a'};margin-top:6px;font-family:'Cormorant Garamond',Georgia,serif">${passed?'Pass':'Fail'}</div>
+        <div style="font-size:13px;color:#8b6848;margin-top:8px">${score} out of ${qs.length} correct &nbsp;|&nbsp; Pass mark: ${cfg.pass}%</div>
+      </div>
+      ${examLevel===3?`<div style="background:#ede3d6;border:1px solid #d9c8b4;border-radius:8px;padding:16px 18px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:#3a2218;margin-bottom:6px">Short Written Section</div>
+        <div style="font-size:12px;color:#8b6848;line-height:1.6">Your written answers are shown below. Use the mark schemes to self-assess. You need 55% in the written section separately to pass.</div>
+        ${EXAM_WRITTEN.map((wq,i)=>`<div style="margin-top:14px;border-top:1px solid #d9c8b4;padding-top:14px">
+          <div style="font-size:11px;font-weight:600;color:#7a1a1a;margin-bottom:4px">Question ${i+1} (${wq.marks} marks)</div>
+          <div style="font-size:12px;color:#3a2218;margin-bottom:8px">${wq.q}</div>
+          <div style="background:#f5efe6;border:1px solid #c9b09a;border-radius:4px;padding:10px;font-size:12px;color:#3a2218;margin-bottom:8px;min-height:40px">${examWrittenAnswers[i]||'<em style="color:#b09878">No answer given</em>'}</div>
+          <div style="font-size:10px;font-weight:600;color:#4a8a5a;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.1em">Mark scheme</div>
+          <div style="font-size:12px;color:#1a4a2a;line-height:1.6;background:#e8f5ec;border:1px solid #2a7a3a;border-radius:4px;padding:10px">${wq.scheme}</div>
+        </div>`).join('')}
+      </div>`:''}
+      <div style="background:#ede3d6;border:1px solid #d9c8b4;border-radius:8px;padding:16px 18px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:#3a2218;margin-bottom:8px">Your multiple choice breakdown</div>
+        ${qs.map((q,i)=>{
+          const correct=examAnswers[i]===q.a;
+          return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #d9c8b4;font-size:12px">
+            <span style="color:${correct?'#2a7a3a':'#9b2a2a'};font-size:16px;flex-shrink:0">${correct?'&#10003;':'&#10007;'}</span>
+            <span style="color:#3a2218;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Q${i+1}: ${q.q.substring(0,55)}...</span>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" style="flex:1" onclick="showReview()">Review answers</button>
+        <button class="btn-primary" style="flex:1" onclick="restartExam()">Try again</button>
+      </div>
+    </div>`;
+  }
+
+  // Written section (Level 3 only)
+  if(examPart==='written'){
+    const wq=EXAM_WRITTEN[examCurrentQ];
+    const isLast=examCurrentQ===EXAM_WRITTEN.length-1;
+    return `<div class="header">
+      <div class="header-top">
+        <div style="font-size:12px;color:#8b6848">Written ${examCurrentQ+1} of ${EXAM_WRITTEN.length}</div>
+        <div class="app-title" style="font-size:14px">Level 3 Written</div>
+        <div style="font-size:12px;color:#7a1a1a;font-weight:600">${wq.marks} marks</div>
+      </div>
+    </div>
+    <div class="form-content">
+      <div style="background:#ede3d6;border:1px solid #d9c8b4;border-radius:8px;padding:18px;margin-bottom:16px">
+        <div style="font-size:10px;font-weight:600;color:#a08060;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px">Question ${examCurrentQ+1}</div>
+        <div style="font-size:14px;color:#3a2218;line-height:1.7">${wq.q}</div>
+      </div>
+      <div class="field">
+        <label>Your answer</label>
+        <textarea id="written-answer" rows="10" placeholder="Write your answer here..." style="font-size:14px;line-height:1.6">${examWrittenAnswers[examCurrentQ]||''}</textarea>
+      </div>
+      <button class="btn-primary" style="width:100%;padding:14px" onclick="examWrittenNav(1)">${isLast?'Finish and see results':'Next question &rarr;'}</button>
+      ${examCurrentQ>0?`<button class="btn" style="width:100%;padding:12px;margin-top:8px" onclick="examWrittenNav(-1)">&larr; Previous question</button>`:''}
+    </div>`;
+  }
+
+  // MC question screen
+  const qs=EXAM_QUESTIONS[examLevel];
+  const q=qs[examCurrentQ];
+  const selected=examAnswers[examCurrentQ];
+  const progress=((examCurrentQ+1)/qs.length)*100;
+  const answered=examAnswers.filter(a=>a>-1).length;
+
+  return `<div class="header">
+    <div class="header-top">
+      <div style="font-size:11px;color:#8b6848">${examCurrentQ+1} / ${qs.length}</div>
+      <div id="exam-timer" style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;color:${examTimeLeft<300?'#8b2a2a':'#7a1a1a'};font-weight:300">${fmtTime(examTimeLeft)}</div>
+      <div style="font-size:11px;color:#4a8a5a">${answered} done</div>
+    </div>
+    <div style="background:#e8dace;border-radius:4px;height:3px;margin-top:8px;overflow:hidden">
+      <div style="width:${progress}%;height:100%;background:#7a1a1a;border-radius:4px;transition:width 0.2s"></div>
+    </div>
+  </div>
+  <div class="content">
+    <div style="background:#ede3d6;border:1px solid #d9c8b4;border-radius:8px;padding:20px;margin-bottom:16px;min-height:100px;display:flex;align-items:center">
+      <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;color:#3a2218;line-height:1.5">${q.q}</div>
+    </div>
+    ${q.o.map((opt,i)=>{
+      const sel=selected===i;
+      return `<div class="exam-opt" onclick="selectAnswer(${i})" style="background:${sel?'#e8d0c0':'#f5efe6'};border:1px solid ${sel?'#9b2a2a':'#c9b09a'};border-radius:6px;padding:13px 16px;margin-bottom:10px;cursor:pointer;font-size:14px;color:${sel?'#7a1a1a':'#3a2218'};display:flex;align-items:center;gap:12px">
+        <span style="width:22px;height:22px;border-radius:50%;border:1px solid ${sel?'#9b2a2a':'#c9b09a'};background:${sel?'#7a1a1a':'transparent'};display:flex;align-items:center;justify-content:center;font-size:10px;color:${sel?'#f5ede0':'#a08060'};flex-shrink:0">${['A','B','C','D'][i]}</span>
+        ${opt}
+      </div>`;
+    }).join('')}
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn" style="flex:1" onclick="examNav(-1)" ${examCurrentQ===0?'disabled':''}>&#8592; Prev</button>
+      ${examCurrentQ===qs.length-1
+        ?`<button class="btn-primary" style="flex:1" onclick="finishExamMC()">${examLevel===3?'Continue to Written':'Submit Exam'}</button>`
+        :`<button class="btn-primary" style="flex:1" onclick="examNav(1)">Next &#8594;</button>`
+      }
+    </div>
+    <div style="text-align:center;margin-top:10px">
+      <button onclick="finishExamMC()" style="background:none;border:none;color:#b09878;font-size:11px;cursor:pointer;font-family:Georgia,serif">Submit early</button>
+    </div>
+  </div>`;
+}
 
 // ── Form actions ──────────────────────────────────────────
 function setType(t){form.wineType=t;form.colour='';render();}
@@ -1200,6 +1640,19 @@ function renderHome() {
         <div style="color:#c9b09a;font-size:20px;flex-shrink:0;align-self:center">&#8250;</div>
       </div>
 
+      <div onclick="goExam()" style="background:#ede3d6;border:1px solid #d9c8b4;border-radius:10px;padding:24px 22px;margin-bottom:14px;cursor:pointer;display:flex;gap:18px;align-items:flex-start;box-shadow:0 2px 10px rgba(58,34,24,0.07)">
+        <div style="width:54px;height:54px;border-radius:50%;background:#1a4a2a;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 4px 12px rgba(26,74,42,0.4)">&#128221;</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+            <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;color:#3a2218;font-weight:400">Practice Exams</div>
+            <div style="background:#4a8a5a;color:#f5ede0;font-size:8px;letter-spacing:0.12em;padding:2px 7px;border-radius:20px;font-family:Georgia,serif;flex-shrink:0">FREE</div>
+          </div>
+          <div style="font-size:10px;color:#1a4a2a;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;font-family:'Cormorant Garamond',Georgia,serif;font-weight:600">Level 1 · Level 2 · Level 3</div>
+          <div style="font-size:13px;color:#8b6848;line-height:1.6">Timed practice exams modelled on the real WSET format. Multiple choice and written questions with full mark schemes.</div>
+        </div>
+        <div style="color:#c9b09a;font-size:20px;flex-shrink:0;align-self:center">&#8250;</div>
+      </div>
+
       <div style="background:linear-gradient(135deg,#ede3d6,#e8dace);border:1px solid #d9c8b4;border-radius:10px;padding:20px 22px;margin-top:6px">
         <div style="font-size:9px;color:#a08060;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:8px;font-family:'Cormorant Garamond',Georgia,serif;font-weight:600">&#128161; Wine Tip</div>
         <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:16px;color:#3a2218;line-height:1.6;font-style:italic;font-weight:300">
@@ -1313,7 +1766,6 @@ function render(){
   if(!currentUser){ document.getElementById('app').innerHTML=renderLogin(); return; }
   if(view==='home'){
     document.getElementById('app').innerHTML=renderHome();
-    // Tagline rotation
     (function(){
       var lines=['Your Wine Tasting Diary','Your WSET Study Companion'];
       var i=0;
@@ -1324,6 +1776,7 @@ function render(){
       },3000);
     })();
   }
+  else if(view==='exam') document.getElementById('app').innerHTML=renderExam();
   else if(view==='study') document.getElementById('app').innerHTML=renderStudy();
   else if(view==='form') document.getElementById('app').innerHTML=renderForm();
   else if(view==='detail') document.getElementById('app').innerHTML=renderDetail();
