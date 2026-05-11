@@ -1300,6 +1300,10 @@ function renderExam(){
           For Level 3, the multiple choice and short written sections are separate.
         </div>
       </div>
+      <div style="background:#f5efe6;border:1px solid #c9b09a;border-radius:8px;padding:14px 18px;margin-top:10px">
+        <div style="font-size:10px;color:#a08060;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:5px;font-family:'Cormorant Garamond',Georgia,serif;font-weight:600">Important notice</div>
+        <div style="font-size:11px;color:#8b6848;line-height:1.7">These practice questions are based on published WSET syllabuses and are intended as a study aid only. TasteNote is not affiliated with, endorsed by, or connected to the Wine and Spirit Education Trust (WSET) in any way. Always refer to your official WSET course materials as the definitive study resource.</div>
+      </div>
       <button class="btn-primary" style="width:100%;padding:14px;margin-top:16px;font-size:16px" onclick="startExam(${examLevel})">Start Exam &rarr;</button>
     </div>`;
   }
@@ -1738,6 +1742,9 @@ function renderStudy() {
     </div>
     ${cardHTML}
 
+    <div style="margin-top:24px;font-size:11px;color:#c9b09a;text-align:center;line-height:1.6;padding:0 8px">
+      Study cards are based on published WSET syllabuses. TasteNote is not affiliated with or endorsed by WSET.
+    </div>
   </div>`;
 }
 
