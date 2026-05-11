@@ -133,6 +133,7 @@ input[type=range]{accent-color:#7a1a1a;padding:0;border:none;background:none;wid
   <div class="connecting"><div style="font-size:36px">🍷</div><div class="connecting-text">Connecting to your cellar...</div></div>
 </div>
 
+<script src="./questions.js"></script>
 <script>
 // ====================================================
 // TasteNote - Firebase Config
@@ -184,46 +185,6 @@ const COMPLEXITY = ['Simple','Moderate','Complex','Very complex'];
 const BALANCE = ['Unbalanced','Slightly unbalanced','Balanced','Very well balanced'];
 const TYPICITY = ['Atypical','Somewhat typical','Typical','Highly typical'];
 const STYLE = ['Lean / Elegant','Medium-bodied','Rich / Full'];
-
-// ── WSET Questions ────────────────────────────────────────
-const WSET_QUESTIONS = {
-  1: [
-    { q: 'What are the three main colours of wine?', a: 'Red, white and rose.' },
-    { q: 'Name the five factors that affect the style and quality of wine.', a: 'Climate, soil, grape variety, viticulture (vineyard management), and winemaking.' },
-    { q: 'What does tannin contribute to a wine?', a: 'Tannin gives red wines their drying, grippy texture. It acts as a preservative and comes from grape skins, seeds and oak barrels.' },
-    { q: 'What is the difference between a dry and a sweet wine?', a: 'A dry wine has little or no residual sugar. A sweet wine retains significant residual sugar after fermentation.' },
-    { q: 'Name three classic red grape varieties.', a: 'Cabernet Sauvignon, Merlot and Pinot Noir. Also: Syrah/Shiraz, Tempranillo, Sangiovese, Malbec.' },
-    { q: 'What temperature should red wine generally be served at?', a: 'Light reds: 12-14 C. Full-bodied reds: 16-18 C. Serving too warm makes alcohol feel harsh.' },
-    { q: 'What is acidity in wine and why does it matter?', a: 'Acidity gives wine freshness and crispness. It balances sweetness, preserves the wine and makes it food-friendly.' },
-    { q: 'Name two classic white grape varieties.', a: 'Chardonnay and Sauvignon Blanc. Also: Riesling, Pinot Grigio, Gewurztraminer, Viognier.' },
-    { q: 'What is a sparkling wine and name one example?', a: 'A wine with significant dissolved CO2 creating bubbles. Examples: Champagne, Prosecco, Cava.' },
-    { q: 'What food would you pair with a full-bodied red wine high in tannin?', a: 'Rich, fatty or protein-rich foods like red meat, lamb or aged hard cheese. Tannin binds to protein and softens on the palate.' },
-  ],
-  2: [
-    { q: 'What is the difference between Old World and New World wine regions?', a: 'Old World (Europe and Middle East) tends toward restrained, terroir-driven styles. New World (Americas, Australia, NZ, SA) typically produces riper, more fruit-forward wines.' },
-    { q: 'Explain malolactic fermentation (MLF) and its effect on wine.', a: 'MLF converts sharp malic acid into softer lactic acid. It reduces acidity and adds creamy, buttery texture. Common in Chardonnay and most red wines.' },
-    { q: 'What is the WSET Systematic Approach to Tasting?', a: 'A structured framework assessing wine by Appearance, Nose and Palate, leading to a Conclusions section covering quality and readiness to drink.' },
-    { q: 'Name the principal regions of Burgundy and their key varieties.', a: 'Chablis (Chardonnay), Cote de Nuits (Pinot Noir), Cote de Beaune (Chardonnay and Pinot Noir), Maconnais (Chardonnay).' },
-    { q: 'What climatic conditions suit Riesling, and what styles can it produce?', a: 'Cool climates such as Germany, Alsace and Austria. Styles range from bone dry to lusciously sweet (Spatlese, Auslese, TBA), always with high acidity.' },
-    { q: 'How does oak ageing affect wine flavour?', a: 'New oak adds vanilla, spice, cedar and toast. It also allows slow oxygen exchange which softens tannins. French oak is subtler; American oak more pronounced.' },
-    { q: 'What is residual sugar and how does it arise?', a: 'Residual sugar is the natural grape sugar remaining after fermentation stops. It can result from arrested fermentation, fortification, or using naturally very ripe grapes.' },
-    { q: 'Describe the production method for Champagne.', a: 'Traditional Method: base wine fermented, blended (assemblage), bottled with added sugar and yeast, second fermentation in bottle, aged on lees, riddled, disgorged, dosage added.' },
-    { q: 'What is Botrytis cinerea and which wines does it produce?', a: 'Noble rot is a fungus that dehydrates grapes, concentrating sugars and acids. It produces Sauternes, Tokaji Aszu and Trockenbeerenauslese.' },
-    { q: 'Name three fortified wines and their countries of origin.', a: 'Port (Portugal), Sherry (Spain), Madeira (Portugal). Also: Marsala (Italy), Muscat de Beaumes-de-Venise (France).' },
-  ],
-  3: [
-    { q: 'Explain the concept of terroir and its components.', a: 'Terroir is the complete natural environment: soil (geology, drainage, mineral content), climate (macro/meso/micro), aspect, altitude and topography. It shapes a wine\'s unique character beyond grape variety alone.' },
-    { q: 'What distinguishes a Premier Cru from a Grand Cru in Burgundy?', a: 'Grand Cru is the highest classification, covering specific named vineyards of exceptional quality. Premier Cru is one tier below. Both are site-specific; village wines carry only the commune name.' },
-    { q: 'Describe the differences between Vintage, NV and Prestige Cuvee Champagne.', a: 'NV blends multiple years for consistency. Vintage uses a single year\'s grapes, aged longer. Prestige Cuvee (e.g. Dom Perignon) uses the finest parcels with the longest ageing and highest price point.' },
-    { q: 'What are the key factors that determine wine quality at WSET Level 3?', a: 'Balance (acid, tannin, alcohol, sweetness, fruit), Length (finish), Intensity, Complexity and Expression of variety or origin. Combined to give Outstanding, Very Good, Good, Acceptable or Faulty.' },
-    { q: 'Explain the ageing potential of Nebbiolo-based wines.', a: 'Nebbiolo (Barolo, Barbaresco) has very high tannin, high acidity and high alcohol, and needs years to integrate. Barolo can age 20-30+ years, developing tar, roses, leather and forest floor.' },
-    { q: 'What is reduction in wine and how does it occur?', a: 'Reduction is a fault caused by insufficient oxygen during winemaking, producing sulphur compounds such as rotten egg, rubber or struck match aromas. It can partially resolve with aeration.' },
-    { q: 'Compare Syrah styles from the Northern Rhone versus Australia.', a: 'Northern Rhone (Hermitage, Cote-Rotie): cool climate, lean body, peppery, savoury, floral. Australian Shiraz: warm climate, full body, ripe dark fruit, chocolate, often oaky.' },
-    { q: 'What is typicity and why is it assessed in the tasting conclusions?', a: 'Typicity is how well a wine expresses the expected characteristics of its grape variety, region and style. A highly typical wine clearly reflects its origin; an atypical one may still be high quality but unconventional.' },
-    { q: 'Explain the solera system used in Sherry production.', a: 'A fractional blending system of stacked barrels. New wine enters the top (criadera); bottling draws from the oldest bottom barrel (solera). Ensures consistency and complexity across years.' },
-    { q: 'What is TCA and how does it affect wine?', a: '2,4,6-trichloroanisole is the compound causing cork taint. Aromas of damp cardboard, wet dog and musty cellar. Even tiny concentrations suppress fruit and ruin a wine.' },
-  ]
-};
 
 // ── State ─────────────────────────────────────────────────
 let currentUser = null;
