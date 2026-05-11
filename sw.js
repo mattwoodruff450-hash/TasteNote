@@ -2,7 +2,7 @@
 //  TasteNote 🍷 Service Worker
 // ─────────────────────────────────────────────
 
-const CACHE = 'tastenote-v1';
+const CACHE = 'tastenote-v2';
 
 // Files to cache immediately on install
 const PRECACHE = [
